@@ -511,8 +511,8 @@
         // 4. Na mesma página, copie a chave "anon" (pública) e cole no lugar de 'SUA_SUPABASE_ANON_KEY'.
         //
         // O código não funcionará até que substitua estas duas linhas com as suas chaves corretas.
-        const SUPABASE_URL = 'https://oyeqychxfnyhthoygtob.supabase.co'; // Substitua com o seu URL do projeto
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95ZXF5Y2h4Zm55aHRob3lndG9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNTU3NjYsImV4cCI6MjA3NTkzMTc2Nn0.Hmuhm6zdvjDdW2PKkfMEwc4vSzj45_37fra4c1UhHyg'; // Substitua com a sua chave anon (pública)
+        const SUPABASE_URL = 'SUA_SUPABASE_URL'; // Substitua com o seu URL do projeto
+        const SUPABASE_ANON_KEY = 'SUA_SUPABASE_ANON_KEY'; // Substitua com a sua chave anon (pública)
 
 
 
@@ -593,18 +593,18 @@
         const buttonGridContainer = document.getElementById('button-grid-container');
         const mainHeader = document.getElementById('main-header');
 
-        // Referências do novo modal para adicionar aplicativos
-        const addAppButton = document.getElementById('add-app-button');
-        const addAppModal = document.getElementById('add-app-modal');
-        const closeAddAppModalButton = document.getElementById('close-add-app-modal');
-        const appTitleInput = document.getElementById('app-title-input');
-        const appUrlInput = document.getElementById('app-url-input');
-        const saveAppButton = document.getElementById('save-app-button');
-        const cancelAddAppButton = document.getElementById('cancel-add-app-button');
-        const iconPickerContainer = document.getElementById('icon-picker-container');
-        const appIconClassInput = document.getElementById('app-icon-class-input');
-        const appBgColorInput = document.getElementById('app-bg-color-input');
-        const appIconColorInput = document.getElementById('app-icon-color-input');
+        // Referências do novo modal para adicionar aplicativos (FUNCIONALIDADE DESATIVADA PARA CORREÇÃO)
+        // const addAppButton = document.getElementById('add-app-button');
+        // const addAppModal = document.getElementById('add-app-modal');
+        // const closeAddAppModalButton = document.getElementById('close-add-app-modal');
+        // const appTitleInput = document.getElementById('app-title-input');
+        // const appUrlInput = document.getElementById('app-url-input');
+        // const saveAppButton = document.getElementById('save-app-button');
+        // const cancelAddAppButton = document.getElementById('cancel-add-app-button');
+        // const iconPickerContainer = document.getElementById('icon-picker-container');
+        // const appIconClassInput = document.getElementById('app-icon-class-input');
+        // const appBgColorInput = document.getElementById('app-bg-color-input');
+        // const appIconColorInput = document.getElementById('app-icon-color-input');
 
         // Referências da nova faixa de ações e seus botões
         const appActionBar = document.getElementById('app-action-bar');
@@ -613,11 +613,11 @@
         const deleteAppButton = document.getElementById('delete-app-button');
         const closeAppModalButton = document.getElementById('close-app-modal-button');
 
-        // Referências da Lixeira
-        const trashBinButton = document.getElementById('trash-bin-button');
-        const trashBinModal = document.getElementById('trash-bin-modal');
-        const closeTrashBinModal = document.getElementById('close-trash-bin-modal');
-        const trashListContainer = document.getElementById('trash-list-container');
+        // Referências da Lixeira (FUNCIONALIDADE DESATIVADA PARA CORREÇÃO)
+        // const trashBinButton = document.getElementById('trash-bin-button');
+        // const trashBinModal = document.getElementById('trash-bin-modal');
+        // const closeTrashBinModal = document.getElementById('close-trash-bin-modal');
+        // const trashListContainer = document.getElementById('trash-list-container');
 
         // Referências do App Explorar
         const exploreModal = document.getElementById('explore-modal');
@@ -709,9 +709,9 @@
             editProfileModal.classList.add('hidden');
             settingsModal.classList.add('hidden');
             deleteConfirmModal.classList.add('hidden');
-            addAppModal.classList.add('hidden');
+            // addAppModal.classList.add('hidden'); // Desativado
             editFixedAppModal.classList.add('hidden');
-            trashBinModal.classList.add('hidden');
+            // trashBinModal.classList.add('hidden'); // Desativado
             exploreModal.classList.add('hidden');
 
 
@@ -922,19 +922,11 @@
                 return;
             }
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
 
             if (error) {
-                console.error('Login error:', error.message);
-
-                // Fornece feedback mais específico para o utilizador
-                if (error.message.includes("Email not confirmed")) {
-                    alert("Login falhou: Por favor, confirme o seu e-mail antes de entrar. Verifique a sua caixa de entrada.");
-                } else if (error.message.includes("Invalid login credentials")) {
-                    alert("Login falhou: E-mail ou senha incorretos.");
-                } else {
-                    alert(`Erro no login: ${error.message}`);
-                }
+                console.error(error);
+                alert(`Erro no login: ${error.message}`);
             }
         });
 
@@ -1790,11 +1782,11 @@
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
 
-        // --- NOVOS EVENTOS DE APLICATIVOS ---
-        addAppButton.addEventListener('click', () => showAddAppModal());
-        closeAddAppModalButton.addEventListener('click', hideAddAppModal);
-        cancelAddAppButton.addEventListener('click', hideAddAppModal);
-        saveAppButton.addEventListener('click', saveAppDetails);
+        // --- NOVOS EVENTOS DE APLICATIVOS (FUNCIONALIDADE DESATIVADA PARA CORREÇÃO) ---
+        // addAppButton.addEventListener('click', () => showAddAppModal());
+        // closeAddAppModalButton.addEventListener('click', hideAddAppModal);
+        // cancelAddAppButton.addEventListener('click', hideAddAppModal);
+        // saveAppButton.addEventListener('click', saveAppDetails);
 
         openAppButton.addEventListener('click', () => {
             const appId = appActionBar.dataset.id;
@@ -1868,38 +1860,38 @@
         });
         cancelEditFixedAppButton.addEventListener('click', hideEditFixedAppModal);
 
-        trashBinButton.addEventListener('click', () => {
-            renderTrashList();
-            trashBinModal.classList.remove('hidden');
-            trashBinModal.classList.add('flex');
-        });
-        closeTrashBinModal.addEventListener('click', () => {
-            trashBinModal.classList.add('hidden');
-            trashBinModal.classList.remove('flex');
-        });
-        trashListContainer.addEventListener('click', async (e) => {
-            const restoreButton = e.target.closest('.restore-app-button');
-            const deletePermanentlyButton = e.target.closest('.delete-app-permanently-button');
+        // trashBinButton.addEventListener('click', () => {
+        //     renderTrashList();
+        //     trashBinModal.classList.remove('hidden');
+        //     trashBinModal.classList.add('flex');
+        // });
+        // closeTrashBinModal.addEventListener('click', () => {
+        //     trashBinModal.classList.add('hidden');
+        //     trashBinModal.classList.remove('flex');
+        // });
+        // trashListContainer.addEventListener('click', async (e) => {
+        //     const restoreButton = e.target.closest('.restore-app-button');
+        //     const deletePermanentlyButton = e.target.closest('.delete-app-permanently-button');
 
-            const user = (await supabase.auth.getUser()).data.user;
-            if (!user) return;
+        //     const user = (await supabase.auth.getUser()).data.user;
+        //     if (!user) return;
 
-            if (restoreButton) {
-                const appId = restoreButton.dataset.id;
-                const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
-                const prefs = data?.preferences || {};
-                let removed = prefs.removed_apps || [];
-                prefs.removed_apps = removed.filter(id => id !== appId);
+        //     if (restoreButton) {
+        //         const appId = restoreButton.dataset.id;
+        //         const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+        //         const prefs = data?.preferences || {};
+        //         let removed = prefs.removed_apps || [];
+        //         prefs.removed_apps = removed.filter(id => id !== appId);
 
-                await saveUserPreferences(prefs);
-                await fetchAndRenderApps(user.id);
-                await renderTrashList();
-            } else if (deletePermanentlyButton) {
-                const appId = deletePermanentlyButton.dataset.id;
-                const appTitle = deletePermanentlyButton.dataset.title;
-                showDeleteConfirmationModal(appId, 'custom_app_permanent', appTitle);
-            }
-        });
+        //         await saveUserPreferences(prefs);
+        //         await fetchAndRenderApps(user.id);
+        //         await renderTrashList();
+        //     } else if (deletePermanentlyButton) {
+        //         const appId = deletePermanentlyButton.dataset.id;
+        //         const appTitle = deletePermanentlyButton.dataset.title;
+        //         showDeleteConfirmationModal(appId, 'custom_app_permanent', appTitle);
+        //     }
+        // });
 
         // --- VERIFICAÇÃO DE ESTADO DE AUTENTICAÇÃO E URL ---
         supabase.auth.onAuthStateChange((event, session) => {
