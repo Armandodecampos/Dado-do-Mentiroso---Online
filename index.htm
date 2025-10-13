@@ -168,6 +168,28 @@
             box-shadow: none !important;
             -webkit-tap-highlight-color: transparent !important;
         }
+        /* Estilos para a caixa de mensagens */
+        .message {
+            @apply flex items-start gap-3;
+        }
+        .message.sent {
+            @apply flex-row-reverse;
+        }
+        .message.received {
+            @apply flex-row;
+        }
+        .message-avatar {
+            @apply w-10 h-10 rounded-full object-cover;
+        }
+        .message-content {
+            @apply bg-gray-200 rounded-lg px-4 py-2;
+        }
+        .message.sent .message-content {
+            @apply bg-indigo-500 text-white;
+        }
+        .message-info {
+            @apply text-xs text-gray-500;
+        }
     </style>
 </head>
 <body>
@@ -260,8 +282,21 @@
         </div>
 
         <!-- Grade de botões arrastáveis -->
-        <div id="button-grid-container" class="fixed top-24 inset-x-0 bottom-0 p-4 overflow-y-auto transition-all duration-300">
+        <div id="button-grid-container" class="fixed top-24 inset-x-0 bottom-64 p-4 overflow-y-auto transition-all duration-300">
             <!-- Aplicativos serão injetados aqui -->
+        </div>
+
+        <!-- Caixa de Mensagens -->
+        <div id="message-container" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-64 z-30">
+            <div id="message-list" class="h-full pb-16 overflow-y-auto space-y-4">
+                <!-- As mensagens aparecerão aqui -->
+            </div>
+            <form id="message-form" class="absolute bottom-4 left-4 right-4 flex items-center gap-2">
+                <input id="message-input" type="text" placeholder="Digite sua mensagem..." class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" autocomplete="off">
+                <button id="send-button" type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 focus:outline-none">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
     </div>
 
@@ -630,11 +665,105 @@
         const saveEditFixedAppButton = document.getElementById('save-edit-fixed-app-button');
         const cancelEditFixedAppButton = document.getElementById('cancel-edit-fixed-app-button');
 
+        // Referências da Caixa de Mensagens
+        const messageList = document.getElementById('message-list');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+
+
         let itemToDeleteInfo = null;
         let customAppsSubscription = null;
         let isDragging = false;
         let tempPreferences = {}; // State for settings modal
         let isAppInitialized = false;
+
+        // --- LÓGICA DE MENSAGENS ---
+        let usersCache = {};
+
+        async function fetchUsers() {
+            const { data, error } = await supabase.from('profiles').select('id, profile_name, avatar_url');
+            if (error) {
+                console.error('Error fetching users:', error);
+                return;
+            }
+            usersCache = data.reduce((acc, user) => {
+                acc[user.id] = user;
+                return acc;
+            }, {});
+        }
+
+        async function displayMessage(message) {
+            // Se o utilizador não estiver em cache (ex: um novo utilizador registou-se), busca novamente a lista de utilizadores
+            if (!usersCache[message.user_id]) {
+                await fetchUsers();
+            }
+            const userInfo = usersCache[message.user_id] || { profile_name: 'Utilizador Desconhecido', avatar_url: `https://placehold.co/100x100/A0A0A0/FFFFFF?text=?` };
+
+            const { data: { session } } = await supabase.auth.getSession();
+            const currentUser = session?.user;
+
+            const messageDiv = document.createElement('div');
+            const messageType = (currentUser && currentUser.id === message.user_id) ? 'sent' : 'received';
+            messageDiv.className = `message ${messageType}`;
+
+            const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.profile_name || 'U').charAt(0).toUpperCase()}`;
+
+            messageDiv.innerHTML = `
+                <img src="${avatarSrc}" alt="${userInfo.profile_name}" class="message-avatar">
+                <div class="flex flex-col ${messageType === 'sent' ? 'items-end' : 'items-start'}">
+                    <div class="message-content max-w-xs md:max-w-md">
+                        ${messageType === 'received' ? `<p class="font-bold text-sm text-indigo-700">${userInfo.profile_name || 'Anónimo'}</p>` : ''}
+                        <p>${message.content}</p>
+                    </div>
+                    <p class="message-info mt-1">${new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+            `;
+
+            messageList.appendChild(messageDiv);
+            // Auto-scroll para a última mensagem
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        async function fetchMessages() {
+            messageList.innerHTML = '';
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Erro ao buscar mensagens:', error);
+                return;
+            }
+
+            for (const message of data) {
+                await displayMessage(message);
+            }
+        }
+
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = messageInput.value.trim();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (content && user) {
+                const { error } = await supabase.from('messages').insert([{ content, user_id: user.id }]);
+                if (error) {
+                    console.error('Erro ao enviar mensagem:', error);
+                } else {
+                    messageInput.value = '';
+                }
+            }
+        });
+
+        // Função para subscrever a novas mensagens em tempo real
+        function subscribeToMessages() {
+            supabase.channel('public:messages')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    displayMessage(payload.new);
+                })
+                .subscribe();
+        }
 
         const availableIcons = [
             // Web & Interface
@@ -1915,6 +2044,8 @@
 
                     // --- Busca inicial de dados ---
                     fetchAndRenderApps(session.user.id);
+                    fetchUsers().then(fetchMessages);
+                    subscribeToMessages();
                 }
             } else { // Sem sessão ou o usuário saiu
                 isAppInitialized = false; // Reinicia a flag
