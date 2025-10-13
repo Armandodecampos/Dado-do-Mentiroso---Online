@@ -170,25 +170,25 @@
         }
         /* Estilos para a caixa de mensagens */
         .message {
-            @apply flex items-start gap-3;
+            @apply flex items-end gap-2;
         }
         .message.sent {
             @apply flex-row-reverse;
         }
-        .message.received {
-            @apply flex-row;
-        }
         .message-avatar {
-            @apply w-10 h-10 rounded-full object-cover;
+            @apply w-8 h-8 rounded-full object-cover flex-shrink-0;
         }
         .message-content {
-            @apply bg-gray-200 rounded-lg px-4 py-2;
+            @apply px-3 py-2;
+        }
+        .message.received .message-content {
+            @apply bg-gray-200 text-gray-800 rounded-2xl rounded-bl-md;
         }
         .message.sent .message-content {
-            @apply bg-indigo-500 text-white;
+            @apply bg-indigo-500 text-white rounded-2xl rounded-br-md;
         }
         .message-info {
-            @apply text-xs text-gray-500;
+            @apply text-xs text-gray-400 px-1;
         }
     </style>
 </head>
@@ -693,7 +693,6 @@
         }
 
         async function displayMessage(message) {
-            // Se o utilizador não estiver em cache (ex: um novo utilizador registou-se), busca novamente a lista de utilizadores
             if (!usersCache[message.user_id]) {
                 await fetchUsers();
             }
@@ -707,18 +706,20 @@
             messageDiv.className = `message ${messageType}`;
 
             const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.profile_name || 'U').charAt(0).toUpperCase()}`;
+            const senderNameHTML = messageType === 'received'
+                ? `<p class="font-semibold text-sm mb-1">${userInfo.profile_name || 'Anónimo'}</p>`
+                : '';
 
             messageDiv.innerHTML = `
                 <img src="${avatarSrc}" alt="${userInfo.profile_name}" class="message-avatar">
                 <div class="flex flex-col ${messageType === 'sent' ? 'items-end' : 'items-start'}">
                     <div class="message-content max-w-xs md:max-w-md">
-                        ${messageType === 'received' ? `<p class="font-bold text-sm text-indigo-700">${userInfo.profile_name || 'Anónimo'}</p>` : ''}
+                        ${senderNameHTML}
                         <p>${message.content}</p>
                     </div>
                     <p class="message-info mt-1">${new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
             `;
-
             messageList.appendChild(messageDiv);
             // Auto-scroll para a última mensagem
             messageList.scrollTop = messageList.scrollHeight;
