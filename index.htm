@@ -922,11 +922,19 @@
                 return;
             }
 
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
             if (error) {
-                console.error(error);
-                alert(`Erro no login: ${error.message}`);
+                console.error('Login error:', error.message);
+
+                // Fornece feedback mais específico para o utilizador
+                if (error.message.includes("Email not confirmed")) {
+                    alert("Login falhou: Por favor, confirme o seu e-mail antes de entrar. Verifique a sua caixa de entrada.");
+                } else if (error.message.includes("Invalid login credentials")) {
+                    alert("Login falhou: E-mail ou senha incorretos.");
+                } else {
+                    alert(`Erro no login: ${error.message}`);
+                }
             }
         });
 
