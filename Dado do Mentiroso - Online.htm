@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login com Supabase</title>
+    <!-- Carrega o Tailwind CSS para estilização rápida e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Adiciona Font Awesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        :root {
+            --text-primary: #1f2937; /* Default: Tailwind gray-800 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            @apply bg-gray-100;
+        }
+        .text-theme {
+            color: var(--text-primary);
+        }
+        .shopping-list-item {
+            @apply flex items-center justify-between p-3 border-b border-gray-200;
+        }
+        .shopping-list-item:last-child {
+            @apply border-b-0;
+        }
+        .editable-item {
+            @apply outline-none focus:ring-2 focus:ring-indigo-500 rounded-md;
+        }
+        .item-checked {
+            @apply bg-green-200;
+        }
+        /* Estilos para a grade de botões arrastáveis */
+        #button-grid-container {
+            display: flex;
+            flex-direction: column; /* Organiza os apps em uma coluna */
+            align-items: flex-start; /* Alinha os apps à esquerda */
+            gap: 16px; /* Espaçamento entre os apps */
+        }
+        .app-container {
+            display: flex;
+            flex-direction: row; /* Ícone e texto lado a lado */
+            align-items: center; /* Alinha verticalmente o ícone e o texto */
+            width: 100%; /* Ocupa a largura total */
+            gap: 16px; /* Espaço entre o ícone e o texto */
+        }
+        #button-grid-container .grid-item {
+            background-color: #333;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+        /* NOVO: Estilo para o ícone do app selecionado */
+        #button-grid-container .grid-item.selected {
+            transform: scale(1.15);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .grid-item-icon {
+            font-size: 1.5rem;
+            color: white;
+        }
+        .grid-item-label {
+            @apply font-semibold text-gray-700 text-base text-left; /* Texto maior e alinhado à esquerda */
+            flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+            margin-top: 0;
+        }
+        .app-container.dragging {
+            @apply opacity-50 bg-gray-300;
+        }
+        /* Estilos para as Notas */
+        .note-item {
+            background-color: #FEF3C7;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            padding: 15px;
+            @apply rounded-lg aspect-square flex flex-col justify-between transition-transform duration-200 cursor-pointer;
+        }
+        .note-item:hover {
+            @apply scale-105;
+        }
+        .note-title {
+             @apply font-bold text-lg truncate mb-2;
+             color: var(--text-primary);
+        }
+        .note-content-preview {
+            min-width: 0;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 5; /* Limita o texto a 5 linhas */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            @apply flex-grow text-left;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        .note-actions {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+            padding-top: 0.5rem;
+        }
+        .note-button {
+            @apply cursor-pointer;
+        }
+        .icon-picker-item {
+            @apply cursor-pointer text-2xl text-gray-600 p-2 rounded-md hover:bg-gray-200 text-center;
+        }
+        .icon-picker-item.selected {
+            @apply bg-indigo-500 text-white;
+        }
+        /* Estilos para o App de Receitas */
+        .recipe-item {
+            @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-200 cursor-pointer flex flex-col;
+        }
+        .recipe-item:hover {
+            @apply scale-105 shadow-xl;
+        }
+        .recipe-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            @apply bg-gray-200;
+        }
+        .recipe-content-preview {
+            min-width: 0;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            @apply text-sm;
+            color: var(--text-primary);
+        }
+        .image-preview-item {
+            @apply relative w-24 h-24 rounded-md overflow-hidden;
+        }
+        .image-preview-item img {
+            @apply w-full h-full object-cover;
+        }
+        .remove-image-btn {
+            @apply absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold cursor-pointer;
+        }
+        .noselect {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none;   /* Safari */
+            -khtml-user-select: none;    /* Konqueror HTML */
+            -moz-user-select: none;      /* Old versions of Firefox */
+            -ms-user-select: none;       /* Internet Explorer/Edge */
+            user-select: none;           /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+        }
+        button {
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Correção para remover a borda de foco/toque no botão de perfil */
+        #profile-button:focus, #profile-button:active {
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Novo container principal para centralizar todos os elementos -->
+    <div id="main-container" class="flex items-center justify-center min-h-screen p-4">
+        <!-- Conteúdo do Login -->
+        <div id="app" class="w-full max-w-md">
+            <!-- Formulário de Login Padrão -->
+            <div id="login-form-container" class="w-full max-w-xs mx-auto">
+                <div class="space-y-4">
+                    <h2 class="text-2xl font-bold text-center text-gray-800">Login</h2>
+
+                    <!-- Campo do Email -->
+                    <div class="w-full">
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" autocomplete="email" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg">
+                    </div>
+
+                    <!-- Campo da Senha -->
+                    <div class="w-full">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Senha</label>
+                        <input type="password" id="password" autocomplete="current-password" class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg">
+                    </div>
+
+                    <!-- Botão de Entrar -->
+                    <button id="login-button" class="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md shadow-lg hover:shadow-xl focus:outline-none transition-all text-lg">
+                        Entrar
+                    </button>
+
+                    <!-- Botão de redefinir senha (agora como texto) -->
+                    <button id="reset-password-button" class="!mt-2 w-full text-sm text-center text-gray-600 hover:text-indigo-600 hover:underline focus:outline-none transition-colors duration-200">
+                        Esqueceu a senha?
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formulário de Nova Senha (inicialmente escondido) -->
+            <div id="new-password-container" class="hidden space-y-6 bg-white p-6 rounded-xl shadow-lg">
+                <button id="back-button-new-password" class="w-full flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md shadow-sm hover:bg-gray-300 focus:outline-none transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Voltar
+                </button>
+                <p class="text-center font-semibold text-gray-700 text-lg">Defina sua nova senha</p>
+                <div class="relative">
+                    <label for="new-password" class="block text-sm font-medium text-gray-700">Nova Senha</label>
+                    <input type="password" id="new-password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="relative">
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirme a Senha</label>
+                    <input type="password" id="confirm-password" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button id="update-password-button" class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nova tela do usuário logado -->
+    <div id="logged-in-app" class="hidden h-screen overflow-hidden">
+        <!-- Container fixo no canto superior esquerdo -->
+        <div id="main-header" class="fixed top-0 left-0 right-0 bg-white p-4 shadow-md z-40 h-24 flex items-center">
+            <button id="profile-button" class="flex items-center space-x-4 p-2 rounded-full transition-all duration-200 focus:outline-none">
+                <img id="user-avatar-logged-in" src="https://placehold.co/100x100/A0A0A0/FFFFFF?text=P" alt="Profile" class="w-12 h-12 rounded-full object-cover">
+                <p id="user-email-display" class="text-xl font-bold text-theme noselect"></p>
+            </button>
+            <!-- Botões de Ação -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                 <button id="trash-bin-button" class="w-12 h-12 flex items-center justify-center rounded-full text-white bg-gray-500 hover:bg-gray-600 shadow-xl hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transform transition-all duration-300 ease-in-out">
+                    <i class="fas fa-archive"></i>
+                </button>
+                <button id="add-app-button" class="w-12 h-12 flex items-center justify-center rounded-full text-white bg-indigo-600 hover:bg-indigo-700 shadow-xl hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform transition-all duration-300 ease-in-out">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal de Ações do Aplicativo -->
+        <div id="app-action-bar" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full flex flex-col space-y-4">
+                <button id="open-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-blue-500 hover:bg-blue-600">
+                    Abrir
+                </button>
+                <button id="edit-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-yellow-500 hover:bg-yellow-600">
+                    Editar
+                </button>
+                <button id="delete-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-red-500 hover:bg-red-600">
+                    <span id="delete-app-text">Remover</span>
+                </button>
+                <button id="close-app-modal-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors mt-2">
+                    Fechar
+                </button>
+            </div>
+        </div>
+
+        <!-- Grade de botões arrastáveis -->
+        <div id="button-grid-container" class="fixed top-24 inset-x-0 bottom-0 p-4 overflow-y-auto transition-all duration-300">
+            <!-- Aplicativos serão injetados aqui -->
+        </div>
+    </div>
+
+    <!-- Modal para opções do perfil -->
+    <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <div class="flex justify-end">
+                <button id="close-profile-modal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <h3 class="text-2xl font-bold text-theme">Opções do Perfil</h3>
+            <button id="edit-profile-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">
+                Editar Perfil
+            </button>
+            <button id="change-password-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">
+                Trocar Senha
+            </button>
+            <button id="settings-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">
+                Configurações
+            </button>
+            <button id="logout-button" class="w-full px-4 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
+                Sair
+            </button>
+        </div>
+    </div>
+
+    <!-- Novo Modal para editar perfil -->
+    <div id="edit-profile-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <div class="flex justify-end">
+                <button id="close-edit-profile-modal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <h3 class="text-2xl font-bold text-theme">Editar Perfil</h3>
+
+            <!-- Novo campo para o nome do perfil -->
+            <div class="relative">
+                <label for="profile-name" class="block text-sm font-medium text-left text-theme">Nome do Perfil</label>
+                <input type="text" id="profile-name-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" maxlength="21">
+            </div>
+            <button id="update-profile-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+                Salvar Nome do Perfil
+            </button>
+
+            <label for="avatar-upload" class="block text-sm font-medium text-left text-theme">Trocar Foto</label>
+            <input type="file" id="avatar-upload" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+            <button id="upload-avatar-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+                Fazer Upload da Foto
+            </button>
+            <p id="upload-message" class="text-sm font-medium p-2 rounded-lg" style="display: none;"></p>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de redefinição de senha -->
+    <div id="reset-password-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm text-center space-y-4">
+            <h3 class="text-xl font-bold text-theme">Verifique seu Email</h3>
+            <p class="text-theme">Um link para redefinição de senha foi enviado para <span id="reset-email-display" class="font-semibold text-indigo-600"></span>. Siga as instruções para criar uma nova senha.</p>
+            <button id="close-modal-button" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
+
+    <!-- Novo Modal de Mensagem de Espera -->
+    <div id="wait-message-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <h3 class="text-xl font-bold text-theme">Aguarde</h3>
+            <p class="text-theme">É necessário aguardar para enviar outro e-mail. Por favor, aguarde <span id="wait-time" class="font-semibold text-indigo-600"></span> segundos.</p>
+            <button id="close-wait-modal" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de exclusão -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <h3 class="text-xl font-bold text-theme">Confirmar Exclusão</h3>
+            <p id="delete-confirm-message" class="text-theme">Tem certeza que deseja excluir este item da lista?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-delete-button" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-delete-button" class="px-6 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de mover item -->
+    <div id="move-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[100]">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <h3 class="text-xl font-bold text-theme">Confirmar Ação</h3>
+            <p id="move-item-confirm-message" class="text-theme"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-move-button" class="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button id="confirm-move-button" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Configurações de Papel de Parede -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <div class="flex justify-end">
+                <button id="close-settings-modal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <h3 class="text-2xl font-bold text-theme">Personalizar Aparência</h3>
+
+            <div class="relative">
+                <label for="header-color-input" class="block text-sm font-medium text-left text-theme">Cor do Cabeçalho</label>
+                <input type="color" id="header-color-input" class="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm" value="#FFFFFF">
+            </div>
+
+            <div class="relative">
+                <label for="wallpaper-color-input" class="block text-sm font-medium text-left text-theme">Cor do Papel de Parede</label>
+                <input type="color" id="wallpaper-color-input" class="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm" value="#FFFFFF">
+            </div>
+
+            <div class="relative">
+                <label for="text-color-input" class="block text-sm font-medium text-left text-theme">Cor do Texto</label>
+                <input type="color" id="text-color-input" class="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm" value="#1f2937">
+            </div>
+
+            <div>
+                <label for="wallpaper-upload" class="block text-sm font-medium text-left text-theme">Carregar Imagem de Fundo</label>
+                <input type="file" id="wallpaper-upload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mt-1"/>
+                <p id="wallpaper-upload-message" class="text-sm font-medium p-2 rounded-lg" style="display: none;"></p>
+            </div>
+
+            <button id="remove-wallpaper-button" class="w-full px-4 py-3 bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-600 transition-colors">
+                Remover Personalização
+            </button>
+
+            <div class="flex justify-between space-x-4 pt-4">
+                <button id="cancel-settings-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button id="save-settings-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+                    Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Novo Modal para adicionar aplicativos personalizados -->
+    <div id="add-app-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-50">
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <h2 id="add-app-title" class="text-2xl font-bold truncate text-theme">Adicionar Aplicativo</h2>
+            <button id="close-add-app-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="flex flex-col p-4 bg-gray-100 flex-grow space-y-4 overflow-y-auto">
+            <div class="relative">
+                <label for="app-title-input" class="block text-sm font-medium text-left text-theme">Título</label>
+                <input type="text" id="app-title-input" placeholder="Ex: Google" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="relative">
+                <label for="app-url-input" class="block text-sm font-medium text-left text-theme">URL</label>
+                <input type="url" id="app-url-input" placeholder="Ex: https://google.com" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <!-- Novos campos para personalização -->
+            <div>
+                <label class="block text-sm font-medium text-left text-theme">Ícone</label>
+                <div id="icon-picker-container" class="mt-1 grid grid-cols-5 sm:grid-cols-8 gap-2 p-2 bg-white rounded-md border border-gray-300">
+                    <!-- Ícones serão injetados aqui via JS -->
+                </div>
+                <input type="hidden" id="app-icon-class-input">
+            </div>
+
+            <div class="flex space-x-4">
+                <div class="w-1/2">
+                    <label for="app-bg-color-input" class="block text-sm font-medium text-left text-theme">Cor de Fundo</label>
+                    <input type="color" id="app-bg-color-input" value="#333333" class="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm">
+                </div>
+                <div class="w-1/2">
+                    <label for="app-icon-color-input" class="block text-sm font-medium text-left text-theme">Cor do Ícone</label>
+                    <input type="color" id="app-icon-color-input" value="#FFFFFF" class="mt-1 block w-full h-10 px-1 py-1 border border-gray-300 rounded-md shadow-sm">
+                </div>
+            </div>
+
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="save-app-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+                    Salvar
+                </button>
+                <button id="cancel-add-app-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Novo Modal para Editar Nome de App Fixo -->
+    <div id="edit-fixed-app-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-4">
+            <h3 id="edit-fixed-app-title" class="text-2xl font-bold text-center text-theme">Editar Nome</h3>
+            <div class="relative">
+                <label for="fixed-app-name-input" class="block text-sm font-medium text-left text-theme">Novo Nome</label>
+                <input type="text" id="fixed-app-name-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="cancel-edit-fixed-app-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Cancelar</button>
+                <button id="save-edit-fixed-app-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Novo Modal da Lixeira -->
+    <div id="trash-bin-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-50">
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <h2 class="text-2xl font-bold text-theme">Baú</h2>
+            <button id="close-trash-bin-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div id="trash-list-container" class="flex-grow overflow-y-auto p-4 space-y-2">
+            <!-- Aplicativos removidos serão listados aqui -->
+        </div>
+    </div>
+
+    <!-- NOVO: Modal do App Explorar -->
+    <div id="explore-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-50">
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <h2 class="text-2xl font-bold text-theme">Explorar</h2>
+            <button id="close-explore-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="flex-grow p-4">
+            <!-- Conteúdo do app Explorar virá aqui -->
+        </div>
+    </div>
+
+    <!-- Modal de Comparação de Preços -->
+    <div id="price-comparison-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-50">
+        <!-- Cabeçalho do Modal -->
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <div>
+                <h2 class="text-2xl font-bold text-theme">Comparar Preços</h2>
+                <p id="comparison-item-name" class="text-lg text-theme"></p>
+            </div>
+            <button id="close-price-comparison-modal" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Formulário para Adicionar Preço -->
+        <div class="p-4 bg-white border-b">
+            <div class="flex flex-col sm:flex-row gap-2">
+                <input type="text" id="price-location-input" placeholder="Nome do Local" class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="number" id="price-value-input" placeholder="Preço (ex: 12.99)" step="0.01" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <button id="add-price-button" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">Adicionar</button>
+            </div>
+        </div>
+
+        <!-- Lista de Preços -->
+        <div id="price-list-container" class="flex-grow overflow-y-auto p-4 space-y-2">
+            <!-- Preços serão injetados aqui -->
+        </div>
+    </div>
+
+    <!-- Modal para Editar Preço -->
+    <div id="edit-price-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-[60]">
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <h2 class="text-2xl font-bold text-theme">Editar Preço</h2>
+            <button id="close-edit-price-modal-x-button" class="text-gray-500 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="flex flex-col p-4 bg-gray-100 flex-grow space-y-4">
+            <div class="relative">
+                <label for="edit-price-location-input" class="block text-sm font-medium text-left text-theme">Local</label>
+                <input type="text" id="edit-price-location-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="relative">
+                <label for="edit-price-value-input" class="block text-sm font-medium text-left text-theme">Preço</label>
+                <input type="number" id="edit-price-value-input" step="0.01" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="save-edit-price-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">Salvar</button>
+                <button id="cancel-edit-price-button" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // --- CORREÇÃO IMPORTANTE PARA O ERRO "INVALID API KEY" ---
+        // O erro que está a receber ("Invalid API key") significa que os valores abaixo
+        // não correspondem ao seu projeto Supabase. É necessário substituí-los.
+        //
+        // COMO RESOLVER:
+        // 1. Vá ao painel do seu projeto no site do Supabase.
+        // 2. Navegue até "Project Settings" (Definições do Projeto) e depois "API".
+        // 3. Copie o "Project URL" e cole no lugar de 'SUA_SUPABASE_URL'.
+        // 4. Na mesma página, copie a chave "anon" (pública) e cole no lugar de 'SUA_SUPABASE_ANON_KEY'.
+        //
+        // O código não funcionará até que substitua estas duas linhas com as suas chaves corretas.
+        const SUPABASE_URL = 'https://wgzsvqtfssepfcbltres.supabase.co'; // Substitua com o seu URL do projeto
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnenN2cXRmc3NlcGZjYmx0cmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwODA3NTAsImV4cCI6MjA3NTY1Njc1MH0.hGhM4_LolXKbB9wHu_M2DqDD0injIN6bOc7cuD-gazg'; // Substitua com a sua chave anon (pública)
+
+
+
+
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // Configura o cliente do Supabase para não persistir a sessão no navegador
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: false
+            }
+        });
+
+        // --- REFERÊNCIAS DE ELEMENTOS HTML ---
+        const mainContainer = document.getElementById('main-container');
+        const app = document.getElementById('app');
+        const loggedInAppContainer = document.getElementById('logged-in-app');
+        const loginFormContainer = document.getElementById('login-form-container');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const resetPasswordButton = document.getElementById('reset-password-button');
+        const resetPasswordModal = document.getElementById('reset-password-modal');
+        const resetEmailDisplay = document.getElementById('reset-email-display');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const newPasswordContainer = document.getElementById('new-password-container');
+        const newPasswordInput = document.getElementById('new-password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const updatePasswordButton = document.getElementById('update-password-button');
+        const backButtonNewPassword = document.getElementById('back-button-new-password');
+        const userInitialsLoggedIn = document.getElementById('user-initials-logged-in');
+
+        // Novas referências
+        const profileButton = document.getElementById('profile-button');
+        const profileModal = document.getElementById('profile-modal');
+        const closeProfileModalButton = document.getElementById('close-profile-modal');
+        const editProfileButton = document.getElementById('edit-profile-button');
+        const changePasswordButton = document.getElementById('change-password-button');
+        const logoutButtonModal = document.getElementById('logout-button');
+        const editProfileModal = document.getElementById('edit-profile-modal');
+        const closeEditProfileModalButton = document.getElementById('close-edit-profile-modal');
+        const avatarUploadInput = document.getElementById('avatar-upload');
+        const uploadAvatarButton = document.getElementById('upload-avatar-button');
+        const uploadMessage = document.getElementById('upload-message');
+        const userAvatarLoggedIn = document.getElementById('user-avatar-logged-in');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const updateProfileButton = document.getElementById('update-profile-button');
+
+        // Referências do novo modal de espera
+        const waitMessageModal = document.getElementById('wait-message-modal');
+        const waitTimeSpan = document.getElementById('wait-time');
+        const closeWaitModalButton = document.getElementById('close-wait-modal');
+
+        // Referências do modal de confirmação de exclusão
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const confirmDeleteButton = document.getElementById('confirm-delete-button');
+        const cancelDeleteButton = document.getElementById('cancel-delete-button');
+
+        // Referências do modal de mover item
+        const moveItemModal = document.getElementById('move-item-modal');
+        const moveItemConfirmMessage = document.getElementById('move-item-confirm-message');
+        const confirmMoveButton = document.getElementById('confirm-move-button');
+        const cancelMoveButton = document.getElementById('cancel-move-button');
+
+        // Referências do modal de configurações
+        const settingsButton = document.getElementById('settings-button');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsModalButton = document.getElementById('close-settings-modal');
+        const headerColorInput = document.getElementById('header-color-input');
+        const wallpaperColorInput = document.getElementById('wallpaper-color-input');
+        const textColorInput = document.getElementById('text-color-input');
+        const wallpaperUploadInput = document.getElementById('wallpaper-upload');
+        const wallpaperUploadMessage = document.getElementById('wallpaper-upload-message');
+        const removeWallpaperButton = document.getElementById('remove-wallpaper-button');
+        const saveSettingsButton = document.getElementById('save-settings-button');
+        const cancelSettingsButton = document.getElementById('cancel-settings-button');
+        const buttonGridContainer = document.getElementById('button-grid-container');
+        const mainHeader = document.getElementById('main-header');
+
+        // Referências do novo modal para adicionar aplicativos
+        const addAppButton = document.getElementById('add-app-button');
+        const addAppModal = document.getElementById('add-app-modal');
+        const closeAddAppModalButton = document.getElementById('close-add-app-modal');
+        const appTitleInput = document.getElementById('app-title-input');
+        const appUrlInput = document.getElementById('app-url-input');
+        const saveAppButton = document.getElementById('save-app-button');
+        const cancelAddAppButton = document.getElementById('cancel-add-app-button');
+        const iconPickerContainer = document.getElementById('icon-picker-container');
+        const appIconClassInput = document.getElementById('app-icon-class-input');
+        const appBgColorInput = document.getElementById('app-bg-color-input');
+        const appIconColorInput = document.getElementById('app-icon-color-input');
+
+        // Referências da nova faixa de ações e seus botões
+        const appActionBar = document.getElementById('app-action-bar');
+        const openAppButton = document.getElementById('open-app-button');
+        const editAppButton = document.getElementById('edit-app-button');
+        const deleteAppButton = document.getElementById('delete-app-button');
+        const closeAppModalButton = document.getElementById('close-app-modal-button');
+
+        // Referências da Lixeira
+        const trashBinButton = document.getElementById('trash-bin-button');
+        const trashBinModal = document.getElementById('trash-bin-modal');
+        const closeTrashBinModal = document.getElementById('close-trash-bin-modal');
+        const trashListContainer = document.getElementById('trash-list-container');
+
+        // Referências do App Explorar
+        const exploreModal = document.getElementById('explore-modal');
+        const closeExploreModalButton = document.getElementById('close-explore-modal');
+
+        // Referências do Modal de Edição de App Fixo
+        const editFixedAppModal = document.getElementById('edit-fixed-app-modal');
+        const editFixedAppTitle = document.getElementById('edit-fixed-app-title');
+        const fixedAppNameInput = document.getElementById('fixed-app-name-input');
+        const saveEditFixedAppButton = document.getElementById('save-edit-fixed-app-button');
+        const cancelEditFixedAppButton = document.getElementById('cancel-edit-fixed-app-button');
+
+        let itemToDeleteInfo = null;
+        let customAppsSubscription = null;
+        let isDragging = false;
+        let tempPreferences = {}; // State for settings modal
+        let isAppInitialized = false;
+
+        const availableIcons = [
+            // Web & Interface
+            'fas fa-link', 'fas fa-globe', 'fas fa-star', 'fas fa-heart', 'fas fa-home', 'fas fa-user', 'fas fa-cog',
+            'fas fa-envelope', 'fas fa-search', 'fas fa-filter', 'fas fa-bell', 'fas fa-bookmark', 'fas fa-tag',
+            'fas fa-print', 'fas fa-download', 'fas fa-upload', 'fas fa-share-alt', 'fas fa-check', 'fas fa-times',
+            'fas fa-plus', 'fas fa-minus', 'fas fa-edit', 'fas fa-trash', 'fas fa-info-circle', 'fas fa-question-circle',
+            'fas fa-exclamation-triangle', 'fas fa-exclamation-circle', 'fas fa-power-off', 'fas fa-sync-alt',
+
+            // Objects & Items
+            'fas fa-book', 'fas fa-gamepad', 'fas fa-music', 'fas fa-video', 'fas fa-camera', 'fas fa-cloud',
+            'fas fa-code', 'fas fa-folder', 'fas fa-folder-open', 'fas fa-calculator', 'fas fa-briefcase', 'fas fa-store',
+            'fas fa-gift', 'fas fa-key', 'fas fa-lock', 'fas fa-unlock', 'fas fa-wallet', 'fas fa-credit-card',
+            'fas fa-shopping-bag', 'fas fa-shopping-cart', 'fas fa-box', 'fas fa-archive', 'fas fa-lightbulb',
+            'fas fa-paint-brush', 'fas fa-wrench', 'fas fa-hammer', 'fas fa-tshirt',
+
+            // Business & Finance
+            'fas fa-chart-bar', 'fas fa-chart-line', 'fas fa-chart-pie', 'fas fa-dollar-sign', 'fas fa-euro-sign',
+            'fas fa-pound-sign', 'fas fa-yen-sign', 'fas fa-piggy-bank', 'fas fa-building', 'fas fa-landmark',
+            'fas fa-file-invoice-dollar', 'fas fa-handshake',
+
+            // Communication
+            'fas fa-phone', 'fas fa-phone-alt', 'fas fa-comments', 'fas fa-comment', 'fas fa-microphone',
+            'fas fa-mobile-alt', 'fas fa-rss', 'fas fa-wifi',
+
+            // Transportation & Travel
+            'fas fa-car', 'fas fa-bus', 'fas fa-train', 'fas fa-plane', 'fas fa-ship', 'fas fa-bicycle',
+            'fas fa-map-marker-alt', 'fas fa-compass', 'fas fa-suitcase', 'fas fa-route', 'fas fa-gas-pump',
+
+            // Food & Drink
+            'fas fa-coffee', 'fas fa-utensils', 'fas fa-pizza-slice', 'fas fa-hamburger', 'fas fa-glass-martini-alt',
+            'fas fa-birthday-cake', 'fas fa-cookie-bite',
+
+            // Health & Medical
+            'fas fa-heartbeat', 'fas fa-medkit', 'fas fa-stethoscope', 'fas fa-user-md', 'fas fa-pills',
+            'fas fa-first-aid', 'fas fa-dna',
+
+            // Miscellaneous
+            'fas fa-sun', 'fas fa-moon', 'fas fa-snowflake', 'fas fa-fire', 'fas fa-leaf', 'fas fa-tree',
+            'fas fa-graduation-cap', 'fas fa-trophy', 'fas fa-futbol', 'fas fa-palette'
+        ];
+
+        const fixedAppsMasterList = [
+            { id: 'explore-app', title: 'Explorar', iconClass: 'fas fa-compass', isFixed: true }
+        ];
+
+        // --- FUNÇÕES DE INICIALIZAÇÃO E UI ---
+
+        // Função para carregar os dados do perfil logado
+        async function loadUserProfile(user) {
+            const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('avatar_url, profile_name')
+                .eq('id', user.id)
+                .single();
+
+            if (!error && profileData) {
+                userAvatarLoggedIn.src = profileData.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(profileData.profile_name || user.email).charAt(0).toUpperCase()}`;
+                userEmailDisplay.textContent = profileData.profile_name || user.email;
+                profileNameInput.value = profileData.profile_name || '';
+            } else {
+                const initial = user.email.charAt(0).toUpperCase();
+                userAvatarLoggedIn.src = `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${initial}`;
+                userEmailDisplay.textContent = user.email;
+                profileNameInput.value = '';
+            }
+        }
+
+        // Função para alternar a visibilidade das áreas
+        function toggleUI(isLoggedIn, view) {
+            // Esconde todos os modais primeiro
+            profileModal.classList.add('hidden');
+            waitMessageModal.classList.add('hidden');
+            editProfileModal.classList.add('hidden');
+            settingsModal.classList.add('hidden');
+            deleteConfirmModal.classList.add('hidden');
+            addAppModal.classList.add('hidden');
+            editFixedAppModal.classList.add('hidden');
+            trashBinModal.classList.add('hidden');
+            exploreModal.classList.add('hidden');
+
+
+            if (isLoggedIn) {
+                // Mostra a App e esconde o contentor do Login
+                loggedInAppContainer.classList.remove('hidden');
+                mainContainer.classList.add('hidden');
+
+                // Ajusta o estilo do body para a app
+                document.body.classList.remove('bg-gray-100');
+
+                hideAppActionBar();
+
+            } else {
+                // Mostra o contentor do Login e esconde a App
+                mainContainer.classList.remove('hidden');
+                loggedInAppContainer.classList.add('hidden');
+
+                // Restaura o estilo do body para o login
+                document.body.classList.add('bg-gray-100');
+                mainContainer.classList.add('items-center');
+                mainContainer.classList.remove('items-start', 'pt-20');
+
+
+                // Esconde todas as vistas dentro do ecrã de login
+                loginFormContainer.classList.add('hidden');
+                newPasswordContainer.classList.add('hidden');
+
+                // Mostra a vista de login correta
+                if (view === 'new-password') {
+                    newPasswordContainer.classList.remove('hidden');
+                } else { // A vista padrão é o formulário de login
+                    loginFormContainer.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Função para exibir o modal de espera com a contagem regressiva
+        function showWaitModal(seconds) {
+            let timeLeft = seconds;
+            waitTimeSpan.textContent = timeLeft;
+            waitMessageModal.classList.remove('hidden');
+            waitMessageModal.classList.add('flex');
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                waitTimeSpan.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    waitMessageModal.classList.add('hidden');
+                    waitMessageModal.classList.remove('flex');
+                }
+            }, 1000);
+        }
+
+        // --- FUNÇÕES DE PAPEL DE PAREDE E APARÊNCIA ---
+
+        // Aplica as preferências salvas (papel de parede e cor do cabeçalho)
+        function applyPreferences(preferences) {
+            // Estilos padrão
+            const defaultWallpaperStyles = {
+                backgroundImage: 'none',
+                backgroundColor: '', // Reverte para o padrão do CSS
+                backgroundSize: '',
+                backgroundPosition: '',
+                backgroundRepeat: ''
+            };
+            const defaultHeaderColor = ''; // Branco padrão do CSS
+
+            // Aplica papel de parede
+            const wallpaperPrefs = preferences?.wallpaper;
+            if (wallpaperPrefs) {
+                if (wallpaperPrefs.type === 'color') {
+                    loggedInAppContainer.style.backgroundColor = wallpaperPrefs.value;
+                    loggedInAppContainer.style.backgroundImage = 'none';
+                } else if (wallpaperPrefs.type === 'image') {
+                    loggedInAppContainer.style.backgroundImage = `url(${wallpaperPrefs.value})`;
+                    loggedInAppContainer.style.backgroundSize = 'cover';
+                    loggedInAppContainer.style.backgroundPosition = 'center';
+                    loggedInAppContainer.style.backgroundRepeat = 'no-repeat';
+                }
+            } else {
+                Object.assign(loggedInAppContainer.style, defaultWallpaperStyles);
+            }
+
+            // Aplica cor do cabeçalho e da faixa de ações
+            const headerColor = preferences?.headerColor || defaultHeaderColor;
+            mainHeader.style.backgroundColor = headerColor;
+            appActionBar.style.backgroundColor = headerColor;
+
+            // Aplica cor do texto apenas à área logada, não aos modais
+            const textColor = preferences?.textColor || '#1f2937'; // Default to gray-800
+            loggedInAppContainer.style.setProperty('--text-primary', textColor);
+        }
+
+        // Salva as preferências do usuário no Supabase
+        async function saveUserPreferences(preferences) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ preferences: preferences })
+                .eq('id', user.id);
+
+            if (error) {
+                console.error('Erro ao salvar preferências:', error);
+            }
+        }
+
+        // Carrega as preferências do usuário ao logar
+        async function loadUserPreferences() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('preferences')
+                .eq('id', user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                console.error('Erro ao carregar preferências:', error);
+                applyPreferences(null); // Aplica defaults em caso de erro
+            } else if (data && data.preferences) {
+                applyPreferences(data.preferences);
+                // Define os valores iniciais dos seletores de cor
+                if (data.preferences.headerColor) {
+                    headerColorInput.value = data.preferences.headerColor;
+                }
+                if (data.preferences.wallpaper?.type === 'color') {
+                    wallpaperColorInput.value = data.preferences.wallpaper.value;
+                }
+                if (data.preferences.textColor) {
+                    textColorInput.value = data.preferences.textColor;
+                }
+            } else {
+                applyPreferences(null); // Nenhuma preferência salva, aplica defaults
+            }
+        }
+
+
+        function renderIconPicker(selectedIconClass) {
+            iconPickerContainer.innerHTML = '';
+            availableIcons.forEach(iconClass => {
+                const iconEl = document.createElement('i');
+                iconEl.className = `${iconClass} icon-picker-item`;
+                if (iconClass === selectedIconClass) {
+                    iconEl.classList.add('selected');
+                }
+                iconEl.addEventListener('click', () => {
+                    // Remove selected from previous
+                    const currentSelected = iconPickerContainer.querySelector('.selected');
+                    if (currentSelected) {
+                        currentSelected.classList.remove('selected');
+                    }
+                    // Add selected to new
+                    iconEl.classList.add('selected');
+                    // Update hidden input
+                    appIconClassInput.value = iconClass;
+                });
+                iconPickerContainer.appendChild(iconEl);
+            });
+        }
+
+        function showEditNoteModal(id, title, content, startDate, endDate, isFixed) {
+            editingNoteId = id;
+            if (id) {
+                noteModalTitle.textContent = 'Editar Nota';
+                editNoteTitleInput.value = title;
+                editNoteInput.value = content;
+                editNoteStartDateInput.value = startDate ? startDate.split('T')[0] : '';
+                editNoteEndDateInput.value = endDate ? endDate.split('T')[0] : '';
+                editNoteIsFixedCheckbox.checked = isFixed;
+            } else {
+                noteModalTitle.textContent = 'Adicionar Nova Nota';
+                editNoteTitleInput.value = '';
+                editNoteInput.value = '';
+                editNoteStartDateInput.value = '';
+                editNoteEndDateInput.value = '';
+                editNoteIsFixedCheckbox.checked = false;
+            }
+            const fixed = editNoteIsFixedCheckbox.checked;
+            editNoteStartDateInput.disabled = fixed;
+            editNoteEndDateInput.disabled = fixed;
+            editNoteModal.classList.remove('hidden');
+            editNoteModal.classList.add('flex');
+            editNoteTitleInput.focus();
+            noteErrorMessage.classList.add('hidden');
+        }
+
+        function closeEditNoteModal() {
+            editingNoteId = null;
+            editNoteModal.classList.add('hidden');
+            editNoteModal.classList.remove('flex');
+            noteErrorMessage.classList.add('hidden');
+        }
+
+
+
+        // --- EVENT LISTENERS ---
+        loginButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                alert("Por favor, insira o email e a senha.");
+                return;
+            }
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                console.error(error);
+                alert(`Erro no login: ${error.message}`);
+            }
+        });
+
+        // Adiciona a funcionalidade de login com a tecla Enter nos campos de email e senha
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginButton.click();
+            }
+        });
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginButton.click();
+            }
+        });
+
+        resetPasswordButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                alert("Por favor, insira seu email no campo correspondente para redefinir a senha.");
+                return;
+            }
+            const redirectToUrl = `${window.location.origin}${window.location.pathname}`;
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectToUrl
+            });
+
+            if (error) {
+                console.error(error);
+                if (error.status === 429) {
+                    const waitTimeMatch = error.message.match(/after (\d+) seconds/);
+                    const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+                    showWaitModal(waitTime);
+                } else {
+                    alert(`Erro ao redefinir senha: ${error.message}`);
+                }
+            } else {
+                resetEmailDisplay.textContent = email;
+                resetPasswordModal.classList.remove('hidden');
+                resetPasswordModal.classList.add('flex');
+            }
+        });
+
+        backButtonNewPassword.addEventListener('click', () => {
+            toggleUI(false, 'login');
+            newPasswordInput.value = '';
+            confirmPasswordInput.value = '';
+        });
+
+
+        updatePasswordButton.addEventListener('click', async () => {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (newPassword !== confirmPassword) {
+                return;
+            }
+            if (newPassword.length < 6) {
+                return;
+            }
+
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                console.error(error);
+            } else {
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+                setTimeout(() => {
+                    window.location.href = window.location.origin + window.location.pathname;
+                }, 1000);
+            }
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            resetPasswordModal.classList.add('hidden');
+            resetPasswordModal.classList.remove('flex');
+        });
+
+        closeWaitModalButton.addEventListener('click', () => {
+            waitMessageModal.classList.add('hidden');
+            waitMessageModal.classList.remove('flex');
+        });
+
+        // --- NOVOS EVENTOS PARA O MODAL DO PERFIL ---
+
+        profileButton.addEventListener('click', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                profileModal.classList.remove('hidden');
+                profileModal.classList.add('flex');
+            }
+        });
+
+        closeProfileModalButton.addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+            profileModal.classList.remove('flex');
+        });
+
+        editProfileButton.addEventListener('click', async () => {
+            profileModal.classList.add('hidden');
+            profileModal.classList.remove('flex');
+            editProfileModal.classList.remove('hidden');
+            editProfileModal.classList.add('flex');
+            const { data, error } = await supabase.from('profiles').select('profile_name').eq('id', (await supabase.auth.getSession()).data.session.user.id).single();
+            if (!error && data?.profile_name) {
+                profileNameInput.value = data.profile_name;
+            }
+        });
+
+        closeEditProfileModalButton.addEventListener('click', () => {
+            editProfileModal.classList.add('hidden');
+            editProfileModal.classList.remove('flex');
+            profileModal.classList.remove('hidden');
+            profileModal.classList.add('flex');
+            uploadMessage.style.display = 'none';
+        });
+
+        changePasswordButton.addEventListener('click', async () => {
+            profileModal.classList.add('hidden');
+            profileModal.classList.remove('flex');
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+
+            if (user && user.email) {
+                const redirectToUrl = `${window.location.origin}${window.location.pathname}`;
+
+                try {
+                    const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: redirectToUrl });
+
+                    if (error) {
+                         if (error.status === 429) {
+                            const waitTimeMatch = error.message.match(/after (\d+) seconds/);
+                            const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+                            showWaitModal(waitTime);
+                         }
+                         console.error(error);
+                    } else {
+                        resetEmailDisplay.textContent = user.email;
+                        resetPasswordModal.classList.remove('hidden');
+                        resetPasswordModal.classList.add('flex');
+                    }
+                } catch (err) {
+                     console.error(err);
+                }
+            }
+        });
+
+        logoutButtonModal.addEventListener('click', async () => {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Erro ao sair:', error);
+            } else {
+                toggleUI(false, 'initial');
+                passwordInput.value = '';
+            }
+        });
+
+        uploadAvatarButton.addEventListener('click', async () => {
+            const { data: { session } = {} } = await supabase.auth.getSession();
+            const user = session?.user;
+
+            if (!user) {
+                uploadMessage.textContent = 'Erro: Nenhum usuário logado.';
+                uploadMessage.style.display = 'block';
+                return;
+            }
+
+            const file = avatarUploadInput.files[0];
+            if (!file) {
+                uploadMessage.textContent = 'Por favor, selecione um arquivo.';
+                uploadMessage.style.display = 'block';
+                return;
+            }
+
+            uploadMessage.textContent = 'Carregando...';
+            uploadMessage.style.display = 'block';
+            uploadMessage.classList.remove('text-red-700', 'text-green-700');
+            uploadMessage.classList.add('text-gray-700');
+
+            const filePath = `${user.id}/${file.name}`;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: true
+                });
+
+            if (uploadError) {
+                console.error(uploadError);
+                uploadMessage.textContent = `Erro ao fazer upload: ${uploadError.message}`;
+                uploadMessage.classList.add('text-red-700');
+            } else {
+                const { data: { publicUrl }, error: urlError } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                if (urlError) {
+                    console.error(urlError);
+                    uploadMessage.textContent = 'Erro ao obter o URL da imagem.';
+                    uploadMessage.classList.add('text-red-700');
+                    return;
+                }
+
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ avatar_url: publicUrl })
+                    .eq('id', user.id);
+
+                if (updateError) {
+                    console.error(updateError);
+                    uploadMessage.textContent = `Erro ao atualizar perfil: ${updateError.message}`;
+                    uploadMessage.classList.add('text-red-700');
+                } else {
+                    userAvatarLoggedIn.src = publicUrl;
+                    uploadMessage.textContent = 'Upload bem-sucedido!';
+                    uploadMessage.classList.add('text-green-700');
+                    avatarUploadInput.value = null;
+                    fetchUsers();
+                }
+            }
+        });
+
+        updateProfileButton.addEventListener('click', async () => {
+            const { data: { session } = {} } = await supabase.auth.getSession();
+            const user = session?.user;
+            if (!user) {
+                uploadMessage.textContent = 'Erro: Nenhum usuário logado.';
+                uploadMessage.style.display = 'block';
+                return;
+            }
+            const newProfileName = profileNameInput.value;
+            if (!newProfileName) {
+                uploadMessage.textContent = 'O nome do perfil não pode ser vazio.';
+                uploadMessage.style.display = 'block';
+                return;
+            }
+
+            uploadMessage.textContent = 'Atualizando nome do perfil...';
+            uploadMessage.style.display = 'block';
+            uploadMessage.classList.remove('text-red-700', 'text-green-700');
+            uploadMessage.classList.add('text-gray-700');
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ profile_name: newProfileName })
+                .eq('id', user.id);
+
+            if (updateError) {
+                console.error(updateError);
+                uploadMessage.textContent = `Erro ao atualizar nome do perfil: ${updateError.message}`;
+                uploadMessage.classList.add('text-red-700');
+            } else {
+                userEmailDisplay.textContent = newProfileName;
+                uploadMessage.textContent = 'Nome do perfil atualizado com sucesso!';
+                uploadMessage.classList.add('text-green-700');
+            }
+        });
+
+        function showDeleteConfirmationModal(id, type, name = '') {
+            itemToDeleteInfo = { id, type };
+            const messageEl = document.getElementById('delete-confirm-message');
+
+            if (type === 'note') {
+                messageEl.textContent = 'Tem a certeza que quer apagar esta nota?';
+            } else if (type === 'custom_app_permanent') {
+                messageEl.innerHTML = `Tem certeza que deseja excluir permanentemente o aplicativo "<strong>${name}</strong>"? <br>Esta ação não pode ser desfeita.`;
+            }
+            deleteConfirmModal.classList.remove('hidden');
+            deleteConfirmModal.classList.add('flex');
+        }
+
+        function hideDeleteConfirmationModal() {
+            itemToDeleteInfo = null;
+            deleteConfirmModal.classList.add('hidden');
+            deleteConfirmModal.classList.remove('flex');
+        }
+
+        confirmDeleteButton.addEventListener('click', async () => {
+            if (!itemToDeleteInfo) return;
+
+            const { id, type } = itemToDeleteInfo;
+            const user = (await supabase.auth.getUser()).data.user;
+
+            if (type === 'custom_app_permanent') {
+                if (user) {
+                    // 1. Delete from the database table
+                    await supabase.from('custom_apps').delete().match({ id: id, user_id: user.id });
+
+                    // 2. Remove from the 'removed_apps' list in preferences
+                    const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+                    const prefs = data?.preferences || {};
+                    if (prefs.removed_apps) {
+                        prefs.removed_apps = prefs.removed_apps.filter(appId => appId !== id);
+                        await saveUserPreferences(prefs);
+                    }
+
+                    // 3. Refresh the trash list
+                    await renderTrashList();
+                }
+            }
+            hideDeleteConfirmationModal();
+        });
+
+        cancelDeleteButton.addEventListener('click', () => {
+            hideDeleteConfirmationModal();
+        });
+
+        // --- EVENTOS DO MODAL DE CONFIGURAÇÕES ---
+
+        // Helper to close the settings modal
+        function closeSettingsModal() {
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+            wallpaperUploadMessage.style.display = 'none';
+        }
+
+        // Opens the modal and prepares the temporary state for editing
+        settingsButton.addEventListener('click', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+
+            // Store a deep copy of current preferences to edit and potentially save later
+            tempPreferences = JSON.parse(JSON.stringify((error || !data) ? {} : data.preferences || {}));
+
+            // Set input values based on the loaded preferences
+            headerColorInput.value = tempPreferences.headerColor || '#FFFFFF';
+            wallpaperColorInput.value = (tempPreferences.wallpaper?.type === 'color' ? tempPreferences.wallpaper.value : '#FFFFFF');
+            textColorInput.value = tempPreferences.textColor || '#1f2937';
+
+            profileModal.classList.add('hidden');
+            profileModal.classList.remove('flex');
+            settingsModal.classList.remove('hidden');
+            settingsModal.classList.add('flex');
+        });
+
+        // Save the changes made in the modal
+        saveSettingsButton.addEventListener('click', async () => {
+            await saveUserPreferences(tempPreferences);
+            closeSettingsModal();
+        });
+
+        // Discard changes and revert to how it was before opening the modal
+        cancelSettingsButton.addEventListener('click', async () => {
+            await loadUserPreferences(); // Easiest way to revert to saved state
+            closeSettingsModal();
+        });
+
+        closeSettingsModalButton.addEventListener('click', async () => {
+            await loadUserPreferences(); // Also treat 'X' as a cancel action
+            closeSettingsModal();
+        });
+
+        // Live preview for header color
+        headerColorInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            mainHeader.style.backgroundColor = color;
+            appActionBar.style.backgroundColor = color; // Sincroniza a cor da faixa de ações
+            tempPreferences.headerColor = color; // Update temp state
+        });
+
+        // Live preview for wallpaper color
+        wallpaperColorInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            loggedInAppContainer.style.backgroundColor = color;
+            loggedInAppContainer.style.backgroundImage = 'none';
+            // Update temp state to reflect color selection
+            tempPreferences.wallpaper = { type: 'color', value: color };
+        });
+
+        textColorInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            loggedInAppContainer.style.setProperty('--text-primary', color);
+            tempPreferences.textColor = color; // Update temp state
+        });
+
+        // Handle image upload: updates temp state, but doesn't save permanently yet
+        wallpaperUploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                wallpaperUploadMessage.textContent = 'Usuário não encontrado.';
+                wallpaperUploadMessage.style.display = 'block';
+                return;
+            }
+
+            wallpaperUploadMessage.textContent = 'Carregando imagem...';
+            wallpaperUploadMessage.style.display = 'block';
+            wallpaperUploadMessage.classList.remove('text-red-700', 'text-green-700');
+
+            const filePath = `${user.id}/${file.name}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('wallpapers')
+                .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+            if (uploadError) {
+                wallpaperUploadMessage.textContent = `Erro no upload: ${uploadError.message}`;
+                wallpaperUploadMessage.classList.add('text-red-700');
+                console.error(uploadError);
+                return;
+            }
+
+            const { data } = supabase.storage.from('wallpapers').getPublicUrl(filePath);
+            const publicUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+
+            // Update temp state with new image wallpaper
+            tempPreferences.wallpaper = { type: 'image', value: publicUrl };
+
+            // Apply the change for live preview
+            applyPreferences(tempPreferences);
+
+            wallpaperUploadMessage.textContent = 'Imagem carregada! Clique em Salvar.';
+            wallpaperUploadMessage.classList.add('text-green-700');
+            wallpaperUploadInput.value = '';
+        });
+
+        // Resets the temporary preferences for a live preview of removal
+        removeWallpaperButton.addEventListener('click', async () => {
+            tempPreferences = {};
+            applyPreferences(null); // Visually reset to defaults
+            wallpaperColorInput.value = '#FFFFFF';
+            headerColorInput.value = '#FFFFFF';
+            textColorInput.value = '#1f2937';
+        });
+
+        // --- LÓGICA DE APLICATIVOS PERSONALIZADOS E FIXOS ---
+        async function renderApps(appsToRender, appOrder) {
+            buttonGridContainer.innerHTML = '';
+
+            const sortedApps = [...appsToRender].sort((a, b) => {
+                const indexA = appOrder.indexOf(a.id);
+                const indexB = appOrder.indexOf(b.id);
+
+                if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+                }
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return a.title.localeCompare(b.title);
+            });
+
+            sortedApps.forEach(app => {
+                const appContainer = document.createElement('div');
+                appContainer.className = 'app-container';
+                appContainer.dataset.id = app.id;
+                appContainer.dataset.title = app.title;
+                appContainer.dataset.isFixed = app.isFixed;
+                if (app.url) appContainer.dataset.url = app.url;
+                if (app.icon_class) appContainer.dataset.iconClass = app.icon_class;
+                if (app.bg_color) appContainer.dataset.bgColor = app.bg_color;
+                if (app.icon_color) appContainer.dataset.iconColor = app.icon_color;
+
+                const iconClass = app.icon_class || 'fas fa-link';
+                const styleParts = [];
+                if (app.bg_color) {
+                    styleParts.push(`background-color: ${app.bg_color}`);
+                }
+                const iconStyleParts = [];
+                if (app.icon_color) {
+                    iconStyleParts.push(`color: ${app.icon_color}`);
+                }
+                const gridItemStyle = styleParts.join('; ');
+                const iconStyle = iconStyleParts.join('; ');
+
+                appContainer.innerHTML = `
+                    <div class="grid-item" draggable="true" style="${gridItemStyle}">
+                        <i class="${iconClass} grid-item-icon" style="${iconStyle}"></i>
+                    </div>
+                    <span class="grid-item-label text-theme noselect">${app.title}</span>
+                `;
+
+                const gridItem = appContainer.querySelector('.grid-item');
+                gridItem.addEventListener('click', () => {
+                    if (isDragging) return;
+                    showAppActionBar(app); // Alterado para chamar a nova função
+                });
+
+                buttonGridContainer.appendChild(appContainer);
+            });
+        }
+
+        async function fetchAndRenderApps(userId) {
+            if (!userId) return;
+
+            const [profileResponse, appOrderResponse] = await Promise.all([
+                supabase.from('profiles').select('preferences').eq('id', userId).single(),
+                supabase.from('user_app_order').select('app_ids').eq('user_id', userId).single()
+            ]);
+
+            const { data: profile, error: profileError } = profileResponse;
+            const preferences = profileError ? {} : profile.preferences || {};
+            const removedApps = preferences.removed_apps || [];
+            const appCustomizations = preferences.app_customizations || {};
+
+            const { data: appOrderData, error: appOrderError } = appOrderResponse;
+            const appOrder = appOrderError ? [] : appOrderData.app_ids || [];
+
+            const fixedApps = fixedAppsMasterList.map(app => {
+                const customization = appCustomizations[app.id] || {};
+                return {
+                    ...app,
+                    title: customization.title || app.title,
+                    icon_class: customization.icon_class || app.iconClass,
+                    bg_color: customization.bg_color, // Pode ser nulo, tratado na renderização
+                    icon_color: customization.icon_color, // Pode ser nulo, tratado na renderização
+                };
+            });
+
+            const { data: customApps, error: fetchAppsError } = await supabase
+                .from('custom_apps')
+                .select('*')
+                .eq('user_id', userId);
+
+            if (fetchAppsError) {
+                console.error('Erro ao buscar apps existentes:', fetchAppsError);
+            }
+
+            const allAvailableApps = [...fixedApps, ...(customApps || [])];
+            const visibleApps = allAvailableApps.filter(app => !removedApps.includes(app.id));
+
+            renderApps(visibleApps, appOrder);
+        }
+
+        async function saveAppOrder(userId) {
+            if (!userId) return;
+            const appIds = [...buttonGridContainer.children].map(appContainer => appContainer.dataset.id);
+
+            const { error } = await supabase
+                .from('user_app_order')
+                .upsert({ user_id: userId, app_ids: appIds }, { onConflict: 'user_id' });
+
+            if (error) {
+                console.error('Erro ao salvar a ordem dos apps:', error);
+            }
+        }
+
+        function showAppActionBar(app) {
+            // Armazena os dados do app diretamente na faixa de ações
+            appActionBar.dataset.id = app.id;
+            appActionBar.dataset.title = app.title;
+            appActionBar.dataset.url = app.url || '';
+            appActionBar.dataset.isFixed = app.isFixed;
+            appActionBar.dataset.iconClass = app.icon_class || '';
+            appActionBar.dataset.bgColor = app.bg_color || '';
+            appActionBar.dataset.iconColor = app.icon_color || '';
+
+            // NOVO: Lógica para destacar o ícone selecionado
+            // 1. Remove a seleção de qualquer outro item
+            const currentlySelected = buttonGridContainer.querySelector('.grid-item.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+
+            // 2. Adiciona a seleção ao item clicado
+            const appElement = buttonGridContainer.querySelector(`.app-container[data-id="${app.id}"]`);
+            if (appElement) {
+                const gridItem = appElement.querySelector('.grid-item');
+                if (gridItem) {
+                    gridItem.classList.add('selected');
+                }
+            }
+
+
+            // Mostra a faixa de ações
+            appActionBar.classList.remove('hidden');
+            appActionBar.classList.add('flex');
+        }
+
+        function hideAppActionBar() {
+            // Esconde a faixa de ações
+            appActionBar.classList.add('hidden');
+            appActionBar.classList.remove('flex');
+
+            // NOVO: Remove a seleção de qualquer item que a tenha
+            const currentlySelected = buttonGridContainer.querySelector('.grid-item.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+        }
+
+        function showAddAppModal(appData = null) {
+            const urlInputContainer = appUrlInput.parentElement;
+
+            if (appData) { // Modo de Edição
+                addAppModal.dataset.editId = appData.id;
+                addAppModal.dataset.isFixed = appData.isFixed;
+                document.getElementById('add-app-title').textContent = 'Editar Aplicativo';
+                appTitleInput.value = appData.title;
+                appUrlInput.value = appData.url || '';
+
+                if (appData.isFixed) {
+                    urlInputContainer.classList.add('hidden');
+                } else {
+                    urlInputContainer.classList.remove('hidden');
+                }
+
+                const selectedIcon = appData.icon_class || 'fas fa-link';
+                appIconClassInput.value = selectedIcon;
+                appBgColorInput.value = appData.bg_color || '#333333';
+                appIconColorInput.value = appData.icon_color || '#FFFFFF';
+                renderIconPicker(selectedIcon);
+
+            } else { // Modo de Adição
+                addAppModal.removeAttribute('data-edit-id');
+                addAppModal.removeAttribute('data-is-fixed');
+                document.getElementById('add-app-title').textContent = 'Adicionar Aplicativo';
+                appTitleInput.value = '';
+                appUrlInput.value = '';
+                urlInputContainer.classList.remove('hidden');
+
+                const defaultIcon = 'fas fa-link';
+                appIconClassInput.value = defaultIcon;
+                appBgColorInput.value = '#333333';
+                appIconColorInput.value = '#FFFFFF';
+                renderIconPicker(defaultIcon);
+            }
+            addAppModal.classList.remove('hidden');
+            addAppModal.classList.add('flex');
+            appTitleInput.focus();
+        }
+
+        function hideAddAppModal() {
+            addAppModal.classList.add('hidden');
+            addAppModal.classList.remove('flex');
+            addAppModal.removeAttribute('data-edit-id');
+            appTitleInput.value = '';
+            appUrlInput.value = '';
+        }
+
+        async function saveAppDetails() {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            const appId = addAppModal.dataset.editId;
+            const isFixed = addAppModal.dataset.isFixed === 'true';
+
+            const appDetails = {
+                title: appTitleInput.value.trim(),
+                url: appUrlInput.value.trim(),
+                icon_class: appIconClassInput.value,
+                bg_color: appBgColorInput.value,
+                icon_color: appIconColorInput.value,
+            };
+
+            if (isFixed) {
+                // Salvar personalização para apps fixos nas preferências do perfil
+                const { data, error } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+                if (error && error.code !== 'PGRST116') {
+                    console.error("Erro ao buscar perfil:", error);
+                    return;
+                }
+
+                const prefs = data?.preferences || {};
+                if (!prefs.app_customizations) {
+                    prefs.app_customizations = {};
+                }
+                prefs.app_customizations[appId] = {
+                    title: appDetails.title,
+                    icon_class: appDetails.icon_class,
+                    bg_color: appDetails.bg_color,
+                    icon_color: appDetails.icon_color,
+                };
+
+                await saveUserPreferences(prefs);
+
+            } else {
+                // Lógica original para apps personalizados
+                if (!appDetails.title || !appDetails.url) {
+                    console.error('Título e URL são obrigatórios para apps personalizados.');
+                    return;
+                }
+
+                if (appId) { // Editar app personalizado
+                    const { error } = await supabase.from('custom_apps').update(appDetails).match({ id: appId, user_id: user.id });
+                    if (error) console.error('Erro ao atualizar app personalizado:', error);
+                } else { // Adicionar novo app personalizado
+                    const { error } = await supabase.from('custom_apps').insert({ ...appDetails, user_id: user.id });
+                    if (error) console.error('Erro ao criar app personalizado:', error);
+                }
+            }
+
+            await fetchAndRenderApps(user.id);
+            hideAddAppModal();
+        }
+
+        async function deleteCustomApp(appId) {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            const { error } = await supabase.from('custom_apps').delete().match({ id: appId, user_id: user.id });
+
+            if (error) {
+                console.error('Erro ao deletar aplicativo:', error);
+            } else {
+                await fetchAndRenderApps(user.id);
+            }
+        }
+
+        function showEditFixedAppModal(appId, currentTitle) {
+            editFixedAppModal.dataset.id = appId;
+            fixedAppNameInput.value = currentTitle;
+            editFixedAppModal.classList.remove('hidden');
+            editFixedAppModal.classList.add('flex');
+            fixedAppNameInput.focus();
+        }
+
+        function hideEditFixedAppModal() {
+            editFixedAppModal.classList.add('hidden');
+            editFixedAppModal.classList.remove('flex');
+        }
+
+        async function renderTrashList() {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            // Fetch preferences and custom apps in parallel
+            const [profileResponse, customAppsResponse] = await Promise.all([
+                supabase.from('profiles').select('preferences').eq('id', user.id).single(),
+                supabase.from('custom_apps').select('*').eq('user_id', user.id)
+            ]);
+
+            const { data: profileData, error: profileError } = profileResponse;
+            if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+                console.error('Error fetching profile for trash:', profileError);
+                return;
+            }
+
+            const prefs = profileData?.preferences || {};
+            const removedIds = prefs.removed_apps || [];
+            const appCustomizations = prefs.app_customizations || {};
+
+            trashListContainer.innerHTML = '';
+            if (removedIds.length === 0) {
+                trashListContainer.innerHTML = '<p class="text-center text-gray-500">O baú está vazio.</p>';
+                return;
+            }
+
+            // Prepare the list of all possible apps (fixed and custom)
+            const fixedApps = fixedAppsMasterList.map(app => {
+                const customization = appCustomizations[app.id] || {};
+                return {
+                    ...app,
+                    title: customization.title || app.title,
+                    icon_class: customization.icon_class || app.iconClass,
+                };
+            });
+
+            const { data: customApps, error: customAppsError } = customAppsResponse;
+            if (customAppsError) {
+                console.error('Error fetching custom apps for trash:', customAppsError);
+            }
+
+            const allApps = [...fixedApps, ...(customApps || [])];
+
+            // Filter to get only the removed apps
+            const removedApps = allApps.filter(app => removedIds.includes(app.id));
+
+            removedApps.forEach(app => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center justify-between p-3 bg-white rounded-lg shadow';
+
+                // Define the buttons based on whether the app is fixed or custom
+                const buttonsHtml = `
+                    <div class="flex items-center space-x-2">
+                        <button data-id="${app.id}" class="restore-app-button w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors" title="Tirar do baú">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        ${!app.isFixed ? `<button data-id="${app.id}" data-title="${app.title}" class="delete-app-permanently-button w-10 h-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors" title="Excluir Permanentemente">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''}
+                    </div>
+                `;
+
+                itemEl.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i class="${app.icon_class || app.iconClass} text-2xl text-gray-600"></i>
+                        <span class="font-semibold text-theme">${app.title}</span>
+                    </div>
+                    ${buttonsHtml}
+                `;
+                trashListContainer.appendChild(itemEl);
+            });
+        }
+
+
+        // --- LÓGICA DE ARRASTAR E SOLTAR (DRAG AND DROP) ---
+        let draggedItem = null;
+
+        buttonGridContainer.addEventListener('dragstart', e => {
+            const iconElement = e.target.closest('.grid-item');
+            if (!iconElement) return; // O arrasto não começou no ícone
+
+            const draggable = iconElement.closest('.app-container');
+            if (draggable) {
+                isDragging = true;
+                draggedItem = draggable;
+                // Adiciona um pequeno atraso para evitar que o elemento pisque
+                setTimeout(() => {
+                    draggable.classList.add('dragging');
+                }, 0);
+            }
+        });
+
+        buttonGridContainer.addEventListener('dragend', async e => {
+            const iconElement = e.target.closest('.grid-item');
+            if (!iconElement) return;
+
+            const draggable = iconElement.closest('.app-container');
+            if (draggable) {
+                isDragging = false;
+                draggable.classList.remove('dragging');
+                draggedItem = null;
+
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await saveAppOrder(user.id);
+                }
+            }
+        });
+
+        buttonGridContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(buttonGridContainer, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                if (afterElement == null) {
+                    buttonGridContainer.appendChild(draggable);
+                } else {
+                    buttonGridContainer.insertBefore(draggable, afterElement);
+                }
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.app-container:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // --- NOVOS EVENTOS DE APLICATIVOS ---
+        addAppButton.addEventListener('click', () => showAddAppModal());
+        closeAddAppModalButton.addEventListener('click', hideAddAppModal);
+        cancelAddAppButton.addEventListener('click', hideAddAppModal);
+        saveAppButton.addEventListener('click', saveAppDetails);
+
+        openAppButton.addEventListener('click', () => {
+            const appId = appActionBar.dataset.id;
+            const appUrl = appActionBar.dataset.url;
+            hideAppActionBar();
+
+            if (appId === 'explore-app') {
+                exploreModal.classList.remove('hidden');
+                exploreModal.classList.add('flex');
+            } else if (appUrl) {
+                window.open(appUrl, '_blank');
+            }
+        });
+
+        closeExploreModalButton.addEventListener('click', () => {
+            exploreModal.classList.add('hidden');
+            exploreModal.classList.remove('flex');
+        });
+
+        editAppButton.addEventListener('click', () => {
+            const appData = {
+                id: appActionBar.dataset.id,
+                title: appActionBar.dataset.title,
+                url: appActionBar.dataset.url,
+                isFixed: appActionBar.dataset.isFixed === 'true',
+                icon_class: appActionBar.dataset.iconClass,
+                bg_color: appActionBar.dataset.bgColor,
+                icon_color: appActionBar.dataset.iconColor
+            };
+
+            hideAppActionBar();
+            showAddAppModal(appData);
+        });
+
+        deleteAppButton.addEventListener('click', async () => {
+            const appId = appActionBar.dataset.id;
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            hideAppActionBar();
+
+            // Unify behavior: always move to trash (add to removed_apps)
+            const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+            const prefs = data?.preferences || {};
+            const removed = prefs.removed_apps || [];
+
+            if (!removed.includes(appId)) {
+                removed.push(appId);
+                prefs.removed_apps = removed;
+                await saveUserPreferences(prefs);
+                await fetchAndRenderApps(user.id);
+            }
+        });
+
+        closeAppModalButton.addEventListener('click', hideAppActionBar);
+
+        saveEditFixedAppButton.addEventListener('click', async () => {
+            const appId = editFixedAppModal.dataset.id;
+            const newName = fixedAppNameInput.value.trim();
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!newName || !user) return;
+
+            const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+            const prefs = data?.preferences || {};
+            if (!prefs.app_names) prefs.app_names = {};
+            prefs.app_names[appId] = newName;
+
+            await saveUserPreferences(prefs);
+            await fetchAndRenderApps(user.id);
+            hideEditFixedAppModal();
+        });
+        cancelEditFixedAppButton.addEventListener('click', hideEditFixedAppModal);
+
+        trashBinButton.addEventListener('click', () => {
+            renderTrashList();
+            trashBinModal.classList.remove('hidden');
+            trashBinModal.classList.add('flex');
+        });
+        closeTrashBinModal.addEventListener('click', () => {
+            trashBinModal.classList.add('hidden');
+            trashBinModal.classList.remove('flex');
+        });
+        trashListContainer.addEventListener('click', async (e) => {
+            const restoreButton = e.target.closest('.restore-app-button');
+            const deletePermanentlyButton = e.target.closest('.delete-app-permanently-button');
+
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            if (restoreButton) {
+                const appId = restoreButton.dataset.id;
+                const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+                const prefs = data?.preferences || {};
+                let removed = prefs.removed_apps || [];
+                prefs.removed_apps = removed.filter(id => id !== appId);
+
+                await saveUserPreferences(prefs);
+                await fetchAndRenderApps(user.id);
+                await renderTrashList();
+            } else if (deletePermanentlyButton) {
+                const appId = deletePermanentlyButton.dataset.id;
+                const appTitle = deletePermanentlyButton.dataset.title;
+                showDeleteConfirmationModal(appId, 'custom_app_permanent', appTitle);
+            }
+        });
+
+        // --- VERIFICAÇÃO DE ESTADO DE AUTENTICAÇÃO E URL ---
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                // Só inicializa a app por completo se ainda não tiver sido feito para esta sessão.
+                // Isto evita que a UI seja recarregada ao trocar de abas.
+                if (!isAppInitialized) {
+                    isAppInitialized = true;
+
+                    loadUserProfile(session.user);
+                    loadUserPreferences();
+                    toggleUI(true); // Esta chamada agora é segura dentro do bloco condicional
+
+                    // --- Configura todas as subscrições em tempo real ---
+                    if (customAppsSubscription) supabase.removeChannel(customAppsSubscription);
+                    customAppsSubscription = supabase.channel('public:custom_apps')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_apps', filter: `user_id=eq.${session.user.id}` }, payload => {
+                            fetchAndRenderApps(session.user.id);
+                        })
+                        .subscribe();
+
+                    // --- Busca inicial de dados ---
+                    fetchAndRenderApps(session.user.id);
+                }
+            } else { // Sem sessão ou o usuário saiu
+                isAppInitialized = false; // Reinicia a flag
+
+                // Limpa todas as subscrições para evitar vazamentos de memória
+                if (customAppsSubscription) supabase.removeChannel(customAppsSubscription);
+                customAppsSubscription = null;
+
+                // Determina qual vista mostrar
+                const params = new URLSearchParams(window.location.hash.substring(1));
+                if (params.get('type') === 'recovery') {
+                    toggleUI(false, 'new-password');
+                } else {
+                    toggleUI(false, 'login');
+                }
+            }
+        });
+
+        // Adiciona um listener para o evento beforeunload para pedir confirmação antes de atualizar a página
+        window.addEventListener('beforeunload', function (e) {
+            // Cancela o evento
+            e.preventDefault();
+            // O Chrome exige que returnValue seja definido
+            e.returnValue = '';
+        });
+    </script>
+</body>
+</html>
