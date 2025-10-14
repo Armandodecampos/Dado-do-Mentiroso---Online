@@ -60,11 +60,18 @@ ON game_players FOR SELECT
 USING (auth.uid() = player_id);
 
 -- Permite que jogadores na mesma sala vejam os dados de outros jogadores (exceto a rolagem dos dados).
--- Isso é gerenciado pela consulta no lado do cliente, selecionando colunas específicas.
--- A política abaixo permite a leitura se o jogador estiver na mesma sala.
+-- Permite que jogadores na mesma sala vejam os dados públicos de outros jogadores.
+-- A lógica é: "Um usuário pode ver uma linha em game_players se existir outra linha na mesma sala que pertença a ele."
 CREATE POLICY "Allow players to see co-players' public data"
 ON game_players FOR SELECT
-USING (room_id IN (SELECT room_id FROM game_players WHERE player_id = auth.uid()));
+USING (
+    EXISTS (
+        SELECT 1
+        FROM game_players AS gp
+        WHERE gp.room_id = game_players.room_id
+          AND gp.player_id = auth.uid()
+    )
+);
 
 -- Permite que um jogador atualize seus próprios dados (por exemplo, ao perder um dado).
 CREATE POLICY "Allow player to update their own data"
