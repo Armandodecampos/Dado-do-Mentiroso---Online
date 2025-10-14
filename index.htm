@@ -170,22 +170,28 @@
         }
         /* Estilos para a caixa de mensagens */
         .message {
-            @apply flex items-start gap-2;
+            @apply flex items-start gap-2.5; /* Aumenta o espaçamento para acomodar a sombra */
+        }
+        .message.sent {
+            @apply flex-row-reverse; /* Inverte a ordem para mensagens enviadas */
         }
         .message-avatar {
-            @apply w-6 h-6 rounded-full object-cover flex-shrink-0;
+            @apply w-5 h-5 rounded-full object-cover flex-shrink-0; /* Avatar menor */
         }
         .message-content {
-            @apply px-3 py-2;
+            @apply px-3 py-2 shadow-md; /* Adiciona sombra a todas as mensagens */
         }
         .message.received .message-content {
-            @apply bg-gray-200 text-gray-800 rounded-2xl rounded-tl-md;
+            @apply bg-gray-200 text-gray-800 rounded-2xl rounded-bl-none; /* Formato de balão para recebidas */
         }
         .message.sent .message-content {
-            @apply bg-indigo-500 text-white rounded-2xl rounded-tr-md;
+            @apply bg-indigo-500 text-white rounded-2xl rounded-br-none; /* Formato de balão para enviadas */
         }
         .message-info {
             @apply text-xs text-gray-400 px-1;
+        }
+        .message.sent .message-info {
+            @apply text-right w-full; /* Alinha o texto da hora à direita para mensagens enviadas */
         }
     </style>
 </head>
@@ -248,7 +254,7 @@
     </div>
 
     <!-- Nova tela do usuário logado -->
-    <div id="logged-in-app" class="hidden h-screen overflow-hidden">
+    <div id="logged-in-app" class="hidden h-screen">
         <!-- Container fixo no canto superior esquerdo -->
         <div id="main-header" class="fixed top-0 left-0 right-0 bg-white p-4 shadow-md z-40 h-24 flex items-center">
             <button id="profile-button" class="flex items-center space-x-4 p-2 rounded-full transition-all duration-200 focus:outline-none">
@@ -701,9 +707,10 @@
             const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.full_name || 'U').charAt(0).toUpperCase()}`;
             const senderNameHTML = `<p class="font-semibold text-sm mb-1">${userInfo.full_name || 'Anónimo'}</p>`;
 
+            const contentAlignment = messageType === 'sent' ? 'items-end' : 'items-start';
             messageDiv.innerHTML = `
                 <img src="${avatarSrc}" alt="${userInfo.full_name}" class="message-avatar">
-                <div class="flex flex-col items-start">
+                <div class="flex flex-col ${contentAlignment}">
                     <div class="message-content max-w-xs md:max-w-md">
                         ${senderNameHTML}
                         <p>${message.content}</p>
