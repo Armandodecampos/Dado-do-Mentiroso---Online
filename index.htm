@@ -273,6 +273,9 @@
             </button>
             <!-- Botões de Ação -->
             <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                <button id="open-liars-dice-btn" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-dice text-2xl text-gray-700"></i>
+                </button>
             </div>
         </div>
 
@@ -299,6 +302,75 @@
             <!-- Aplicativos serão injetados aqui -->
         </div>
 
+        <!-- NOVO: Container do Jogo Dado do Mentiroso -->
+        <div id="liars-dice-container" class="hidden fixed top-24 inset-x-0 bottom-80 p-4 overflow-y-auto bg-gray-200 z-20">
+            <!-- Lobby do Jogo -->
+            <div id="dice-game-lobby" class="flex flex-col items-center justify-center h-full">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Dado do Mentiroso</h2>
+                <div class="space-y-4 text-center">
+                    <button id="dice-create-game-btn" class="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md shadow-lg text-lg">Criar Novo Jogo</button>
+                    <p class="text-gray-600">ou</p>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="dice-room-code-input" placeholder="Código da Sala" class="flex-grow px-4 py-3 border border-gray-300 rounded-md shadow-sm text-lg uppercase text-center">
+                        <button id="dice-join-game-btn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md shadow-lg text-lg">Entrar</button>
+                    </div>
+                    <p id="dice-lobby-message" class="text-red-500 h-4"></p>
+                    <button id="dice-start-game-btn" class="hidden w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-md shadow-lg text-lg mt-4">Iniciar Jogo</button>
+                </div>
+                <button id="dice-exit-game-btn" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-2xl">&times;</button>
+            </div>
+
+            <!-- Tela Principal do Jogo -->
+            <div id="dice-game-screen" class="hidden h-full flex flex-col">
+                <!-- Informações do Jogo (Oponentes e Sala) -->
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xl font-bold">Sala: <span id="dice-game-room-code" class="font-mono"></span></h3>
+                    <div id="dice-turn-timer" class="text-lg font-bold text-red-600"></div>
+                    <div id="dice-game-opponents" class="flex gap-4 text-sm">
+                        <!-- Oponentes serão preenchidos aqui -->
+                    </div>
+                </div>
+
+                <!-- Histórico e Lance Atual -->
+                <div class="bg-white rounded-lg p-2 mb-2 flex-shrink-0">
+                    <p class="text-center font-semibold">Lance Atual: <span id="dice-current-bid" class="text-lg text-indigo-600">Nenhum</span></p>
+                    <div id="dice-round-history" class="text-xs text-gray-500 text-center truncate">Histórico: -</div>
+                </div>
+
+                <!-- Mão do Jogador (seus dados) -->
+                <div class="flex-grow flex flex-col items-center justify-center bg-gray-800 rounded-lg p-4">
+                    <h4 class="text-white font-semibold mb-3">Seus Dados</h4>
+                    <div id="dice-player-hand" class="flex gap-4 text-4xl text-white">
+                        <!-- Os dados do jogador aparecerão aqui -->
+                    </div>
+                </div>
+
+                <!-- Ações do Jogador -->
+                <div id="dice-game-actions" class="mt-2 grid grid-cols-3 gap-2 flex-shrink-0">
+                    <button id="dice-action-bid" class="w-full py-3 bg-blue-500 text-white font-bold rounded-md">Aumentar Lance</button>
+                    <button id="dice-action-bluff" class="w-full py-3 bg-red-600 text-white font-bold rounded-md">Mentiroso!</button>
+                    <button id="dice-action-exact" class="w-full py-3 bg-yellow-500 text-white font-bold rounded-md">Exato!</button>
+                </div>
+
+                <!-- UI para Fazer Lance (Modal/Overlay) -->
+                <div id="dice-bidding-ui" class="hidden absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm text-center">
+                        <h3 class="text-xl font-bold mb-4">Faça seu Lance</h3>
+                        <div class="flex items-center justify-center gap-4">
+                            <input type="number" id="dice-bid-quantity" min="1" value="1" class="w-24 px-4 py-2 border rounded text-2xl text-center">
+                            <span class="text-2xl">&times;</span>
+                            <div id="dice-bid-face-selector" class="flex gap-2 text-3xl">
+                                <!-- Ícones dos dados para selecionar a face -->
+                            </div>
+                        </div>
+                        <div class="mt-6 flex gap-4">
+                            <button id="dice-cancel-bid-btn" class="w-full py-2 bg-gray-300 rounded">Cancelar</button>
+                            <button id="dice-confirm-bid-btn" class="w-full py-2 bg-indigo-600 text-white rounded">Confirmar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Caixa de Mensagens -->
         <div id="message-container" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-80 z-30">
             <div id="message-list" class="h-full pb-16 overflow-y-auto space-y-4">
@@ -679,12 +751,525 @@
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
 
+        // --- NOVO: Referências do Jogo Dado do Mentiroso ---
+        const liarsDiceContainer = document.getElementById('liars-dice-container');
+        const diceGameLobby = document.getElementById('dice-game-lobby');
+        const diceGameScreen = document.getElementById('dice-game-screen');
+        const createGameBtn = document.getElementById('dice-create-game-btn');
+        const joinGameBtn = document.getElementById('dice-join-game-btn');
+        const roomCodeInput = document.getElementById('dice-room-code-input');
+        const lobbyMessage = document.getElementById('dice-lobby-message');
+        const startGameBtn = document.getElementById('dice-start-game-btn');
+        const exitGameBtn = document.getElementById('dice-exit-game-btn');
+        const gameRoomCodeDisplay = document.getElementById('dice-game-room-code');
+        const turnTimerDisplay = document.getElementById('dice-turn-timer');
+        const opponentsContainer = document.getElementById('dice-game-opponents');
+        const currentBidDisplay = document.getElementById('dice-current-bid');
+        const roundHistoryDisplay = document.getElementById('dice-round-history');
+        const openLiarsDiceBtn = document.getElementById('open-liars-dice-btn');
+        const playerHandContainer = document.getElementById('dice-player-hand');
+        const gameActionsContainer = document.getElementById('dice-game-actions');
+        const actionBidBtn = document.getElementById('dice-action-bid');
+        const actionBluffBtn = document.getElementById('dice-action-bluff');
+        const actionExactBtn = document.getElementById('dice-action-exact');
+        const biddingUi = document.getElementById('dice-bidding-ui');
+        const bidQuantityInput = document.getElementById('dice-bid-quantity');
+        const bidFaceSelector = document.getElementById('dice-bid-face-selector');
+        const cancelBidBtn = document.getElementById('dice-cancel-bid-btn');
+        const confirmBidBtn = document.getElementById('dice-confirm-bid-btn');
+
 
         let itemToDeleteInfo = null;
         let customAppsSubscription = null;
         let isDragging = false;
         let tempPreferences = {}; // State for settings modal
         let isAppInitialized = false;
+
+        // --- NOVO: Lógica do Jogo Dado do Mentiroso ---
+        let currentGameRoom = null;
+        let currentPlayer = null;
+        let gamePlayers = [];
+        let gameSubscription = null;
+        let turnTimerInterval = null;
+        const TURN_DURATION_SECONDS = 30;
+
+        // Mapeamento de número para ícone de dado do Font Awesome
+        const diceIcons = {
+            1: 'fas fa-dice-one',
+            2: 'fas fa-dice-two',
+            3: 'fas fa-dice-three',
+            4: 'fas fa-dice-four',
+            5: 'fas fa-dice-five',
+            6: 'fas fa-dice-six',
+        };
+
+        // Função para mostrar/esconder o jogo
+        function showDiceGame(show) {
+            if (show) {
+                liarsDiceContainer.classList.remove('hidden');
+                // Adicionar um botão para abrir o jogo na barra de cabeçalho, se necessário
+            } else {
+                liarsDiceContainer.classList.add('hidden');
+            }
+        }
+
+        // Função para renderizar o estado do jogo na UI
+        async function renderGameState(room, players) {
+            if (!room || !players) return;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Atualiza o estado global
+            currentGameRoom = room;
+            gamePlayers = players;
+            currentPlayer = players.find(p => p.player_id === user.id);
+
+            // Alterna entre lobby e tela do jogo
+            if (room.game_state === 'lobby') {
+                diceGameLobby.classList.remove('hidden');
+                diceGameScreen.classList.add('hidden');
+
+                // Mostra o botão Iniciar Jogo para o anfitrião se houver jogadores suficientes
+                if (user.id === room.host_id && players.length >= 2) {
+                    startGameBtn.classList.remove('hidden');
+                } else {
+                    startGameBtn.classList.add('hidden');
+                }
+            } else {
+                diceGameLobby.classList.add('hidden');
+                diceGameScreen.classList.remove('hidden');
+            }
+
+            showDiceGame(true);
+
+            // Renderiza informações gerais
+            gameRoomCodeDisplay.textContent = room.room_code;
+
+            // Renderiza oponentes
+            opponentsContainer.innerHTML = '';
+            players.filter(p => p.player_id !== user.id).forEach(p => {
+                const opponentEl = document.createElement('div');
+                opponentEl.textContent = `Oponente (${p.dice_count} dados)`;
+                opponentsContainer.appendChild(opponentEl);
+            });
+
+            // Renderiza a mão do jogador atual
+            playerHandContainer.innerHTML = '';
+            if (currentPlayer && currentPlayer.dice_roll) {
+                currentPlayer.dice_roll.forEach(die => {
+                    const dieEl = document.createElement('i');
+                    dieEl.className = `${diceIcons[die]}`;
+                    playerHandContainer.appendChild(dieEl);
+                });
+            }
+
+            // Atualiza o lance atual
+            if (room.last_bid_quantity && room.last_bid_face) {
+                currentBidDisplay.innerHTML = `${room.last_bid_quantity} &times; <i class="${diceIcons[room.last_bid_face]} text-indigo-600"></i>`;
+            } else {
+                currentBidDisplay.textContent = 'Nenhum';
+            }
+
+            // Controla a visibilidade dos botões de ação
+            if (room.current_turn_player_id === user.id) {
+                gameActionsContainer.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                gameActionsContainer.classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            // Desabilita os botões de desafio se não houver um lance
+            if (!room.last_bid_quantity) {
+                actionBluffBtn.disabled = true;
+                actionExactBtn.disabled = true;
+            } else {
+                actionBluffBtn.disabled = false;
+                actionExactBtn.disabled = false;
+            }
+
+            // Lógica de Revelação (apenas visual)
+            if (room.game_state.startsWith('reveal')) {
+                gameActionsContainer.classList.add('hidden'); // Oculta ações durante a revelação
+                if (turnTimerInterval) clearInterval(turnTimerInterval);
+                turnTimerDisplay.textContent = '';
+                opponentsContainer.innerHTML = '<h4>Dados na mesa:</h4>';
+                // Mostra os dados de todos
+                players.forEach(p => {
+                    const playerDiceEl = document.createElement('div');
+                    playerDiceEl.innerHTML = `<p>${p.player_id === user.id ? 'Você' : 'Oponente'} (${p.dice_count} dados): ${p.dice_roll.map(d => `<i class="${diceIcons[d]}"></i>`).join(' ')}</p>`;
+                    opponentsContainer.appendChild(playerDiceEl);
+                });
+            } else {
+                gameActionsContainer.classList.remove('hidden');
+
+                // Lógica do Temporizador
+                if (turnTimerInterval) clearInterval(turnTimerInterval);
+                if (room.turn_expires_at) {
+                    turnTimerInterval = setInterval(() => {
+                        const timeLeft = Math.round((new Date(room.turn_expires_at) - new Date()) / 1000);
+                        if (timeLeft <= 0) {
+                            turnTimerDisplay.textContent = '0s';
+                            clearInterval(turnTimerInterval);
+                            // O anfitrião verifica e penaliza o jogador
+                            if (user.id === room.host_id) {
+                                // Implementar a penalidade (considerado como um desafio "Mentiroso!" perdido pelo jogador do turno)
+                            }
+                        } else {
+                            turnTimerDisplay.textContent = `${timeLeft}s`;
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        // Função para criar um novo jogo
+        async function handleCreateGame() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                lobbyMessage.textContent = 'Você precisa estar logado para criar um jogo.';
+                return;
+            }
+
+            lobbyMessage.textContent = 'Criando sala...';
+            const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+            // 1. Cria a sala
+            const { data: room, error: roomError } = await supabase.from('game_rooms').insert({
+                room_code: roomCode,
+                host_id: user.id
+            }).select().single();
+
+            if (roomError) {
+                lobbyMessage.textContent = `Erro ao criar sala: ${roomError.message}`;
+                return;
+            }
+
+            // 2. Entra na sala
+            await handleJoinGame(roomCode);
+        }
+
+        // Função para entrar em um jogo
+        async function handleJoinGame(code) {
+            const roomCode = (code || roomCodeInput.value).toUpperCase();
+            if (!roomCode) {
+                lobbyMessage.textContent = 'Por favor, insira um código de sala.';
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            lobbyMessage.textContent = 'Entrando na sala...';
+
+            // 1. Encontra a sala
+            const { data: room, error: findRoomError } = await supabase.from('game_rooms')
+                .select('*').eq('room_code', roomCode).single();
+
+            if (findRoomError || !room) {
+                lobbyMessage.textContent = 'Sala não encontrada ou código inválido.';
+                return;
+            }
+            if (room.game_state !== 'lobby') {
+                lobbyMessage.textContent = 'O jogo já começou.';
+                return;
+            }
+
+            // 2. Insere o jogador na sala
+            const { error: joinError } = await supabase.from('game_players').insert({
+                room_id: room.id,
+                player_id: user.id
+            });
+
+            if (joinError && joinError.code !== '23505') { // Ignora erro de chave duplicada se já estiver na sala
+                lobbyMessage.textContent = `Erro ao entrar na sala: ${joinError.message}`;
+                return;
+            }
+
+            // 3. Busca o estado completo e renderiza
+            const { data: players, error: playersError } = await supabase.from('game_players')
+                .select('*').eq('room_id', room.id);
+
+            if (playersError) {
+                lobbyMessage.textContent = `Erro ao buscar jogadores: ${playersError.message}`;
+                return;
+            }
+
+            renderGameState(room, players);
+
+            // 4. Se inscreve para atualizações em tempo real
+            subscribeToGame(room.id);
+        }
+
+        // Função para sair do jogo
+        async function handleExitGame() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !currentGameRoom) return;
+
+            // Remove o jogador da sala
+            await supabase.from('game_players').delete()
+                .match({ room_id: currentGameRoom.id, player_id: user.id });
+
+            // Cancela a inscrição
+            if (gameSubscription) {
+                supabase.removeChannel(gameSubscription);
+                gameSubscription = null;
+            }
+
+            // Reseta o estado e a UI
+            currentGameRoom = null;
+            currentPlayer = null;
+            gamePlayers = [];
+            showDiceGame(false);
+        }
+
+        // Função para se inscrever às atualizações do jogo
+        function subscribeToGame(roomId) {
+            if (gameSubscription) {
+                supabase.removeChannel(gameSubscription);
+            }
+            gameSubscription = supabase.channel(`game_room:${roomId}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'game_rooms', filter: `id=eq.${roomId}` }, async (payload) => {
+                    const updatedRoom = payload.new;
+                    const { data: updatedPlayers } = await supabase.from('game_players').select('*').eq('room_id', roomId);
+                    renderGameState(updatedRoom, updatedPlayers);
+
+                    // Lógica de Resolução do Desafio (executada pelo anfitrião)
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (updatedRoom.game_state.startsWith('reveal') && updatedRoom.host_id === user.id) {
+                        resolveChallenge(updatedRoom, updatedPlayers);
+                    }
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `room_id=eq.${roomId}` }, async (payload) => {
+                    const { data: updatedPlayers } = await supabase.from('game_players').select('*').eq('room_id', roomId);
+                    renderGameState(currentGameRoom, updatedPlayers);
+                })
+                .subscribe();
+        }
+
+        async function resolveChallenge(room, players) {
+            const bidQuantity = room.last_bid_quantity;
+            const bidFace = room.last_bid_face;
+
+            // 1. Conta a quantidade real de dados na mesa
+            let actualCount = 0;
+            players.forEach(p => {
+                p.dice_roll.forEach(die => {
+                    if (die === bidFace || die === 1) { // '1' é curinga
+                        actualCount++;
+                    }
+                });
+            });
+
+            const challenger = players.find(p => p.player_id === room.challenger_id);
+            const bidder = players.find(p => p.player_id === room.last_bidder_id);
+            let loser;
+
+            // 2. Determina o resultado
+            if (room.game_state === 'reveal_bluff') {
+                if (actualCount >= bidQuantity) { // O lance era verdadeiro
+                    loser = challenger;
+                } else { // O lance era um blefe
+                    loser = bidder;
+                }
+            } else if (room.game_state === 'reveal_exact') {
+                if (actualCount === bidQuantity) { // Acerto exato!
+                    // O desafiante ganha um dado (se não tiver 5)
+                    if (challenger.dice_count < 5) {
+                        await supabase.from('game_players').update({ dice_count: challenger.dice_count + 1 }).eq('id', challenger.id);
+                    }
+                    loser = null; // Ninguém perde
+                } else {
+                    loser = challenger; // O desafiante errou
+                }
+            }
+
+            // 3. Penaliza o perdedor
+            if (loser) {
+                const newDiceCount = loser.dice_count - 1;
+                if (newDiceCount === 0) {
+                    // Elimina o jogador
+                    await supabase.from('game_players').delete().eq('id', loser.id);
+                } else {
+                    await supabase.from('game_players').update({ dice_count: newDiceCount }).eq('id', loser.id);
+                }
+            }
+
+            // 4. Pausa para mostrar os resultados e, em seguida, inicia a nova rodada
+            setTimeout(async () => {
+                const { data: remainingPlayers } = await supabase.from('game_players').select('*').eq('room_id', room.id);
+                if (remainingPlayers.length < 2) {
+                    // Fim de jogo
+                    await supabase.from('game_rooms').update({ game_state: 'finished' }).eq('id', room.id);
+                } else {
+                    // Prepara a próxima rodada (semelhante a handleStartGame, mas para jogadores restantes)
+                    const shuffled = remainingPlayers.sort(() => Math.random() - 0.5);
+                    const updates = shuffled.map((p, i) => ({
+                        ...p,
+                        dice_roll: Array.from({ length: p.dice_count }, () => Math.floor(Math.random() * 6) + 1),
+                        turn_order: i + 1
+                    }));
+                    await supabase.from('game_players').upsert(updates);
+
+                    const nextPlayer = updates.find(p => p.turn_order === 1);
+                    const turnExpires = new Date(new Date().getTime() + TURN_DURATION_SECONDS * 1000).toISOString();
+                    await supabase.from('game_rooms').update({
+                        game_state: 'in_progress',
+                        current_turn_player_id: nextPlayer.player_id,
+                        last_bid_quantity: null,
+                        last_bid_face: null,
+                        last_bidder_id: null,
+                        challenger_id: null,
+                        turn_expires_at: turnExpires
+                    }).eq('id', room.id);
+                }
+            }, 5000); // Pausa de 5 segundos
+        }
+
+        // Função para iniciar o jogo (apenas o anfitrião pode fazer isso)
+        async function handleStartGame() {
+            if (!currentGameRoom || !currentPlayer || currentPlayer.player_id !== currentGameRoom.host_id) return;
+            if (gamePlayers.length < 2) {
+                lobbyMessage.textContent = "São necessários pelo menos 2 jogadores para começar.";
+                return;
+            }
+
+            // 1. Embaralha os jogadores para definir a ordem dos turnos
+            const shuffledPlayers = [...gamePlayers].sort(() => Math.random() - 0.5);
+
+            // 2. Prepara as atualizações para cada jogador (rolagem de dados e ordem de turno)
+            const playerUpdates = shuffledPlayers.map((player, index) => {
+                const diceRoll = Array.from({ length: player.dice_count }, () => Math.floor(Math.random() * 6) + 1);
+                return {
+                    ...player,
+                    dice_roll: diceRoll,
+                    turn_order: index + 1
+                };
+            });
+
+            // 3. Atualiza todos os jogadores no banco de dados
+            const { error: updatePlayersError } = await supabase.from('game_players').upsert(playerUpdates);
+            if (updatePlayersError) {
+                lobbyMessage.textContent = `Erro ao iniciar o jogo: ${updatePlayersError.message}`;
+                return;
+            }
+
+            // 4. Atualiza o estado da sala para 'in_progress' e define o primeiro jogador
+            const firstPlayer = playerUpdates.find(p => p.turn_order === 1);
+            const turnExpires = new Date(new Date().getTime() + TURN_DURATION_SECONDS * 1000).toISOString();
+            const { error: updateRoomError } = await supabase.from('game_rooms').update({
+                game_state: 'in_progress',
+                current_turn_player_id: firstPlayer.player_id,
+                turn_expires_at: turnExpires
+            }).eq('id', currentGameRoom.id);
+
+             if (updateRoomError) {
+                lobbyMessage.textContent = `Erro ao atualizar a sala: ${updateRoomError.message}`;
+            }
+        }
+
+        let selectedBidFace = 1;
+
+        // Função para abrir a UI de lances
+        function handleBidAction() {
+            biddingUi.classList.remove('hidden');
+            bidQuantityInput.value = currentGameRoom.last_bid_quantity || 1;
+
+            // Renderiza o seletor de face
+            bidFaceSelector.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const faceEl = document.createElement('i');
+                faceEl.className = `${diceIcons[i]} cursor-pointer p-2 rounded-md hover:bg-gray-200`;
+                faceEl.dataset.face = i;
+                if (i === selectedBidFace) {
+                    faceEl.classList.add('bg-indigo-200');
+                }
+                faceEl.addEventListener('click', () => {
+                    selectedBidFace = i;
+                    // Atualiza a UI para refletir a seleção
+                    document.querySelectorAll('#dice-bid-face-selector i').forEach(el => el.classList.remove('bg-indigo-200'));
+                    faceEl.classList.add('bg-indigo-200');
+                });
+                bidFaceSelector.appendChild(faceEl);
+            }
+        }
+
+        // Função para confirmar um lance
+        async function handleConfirmBid() {
+            const newQuantity = parseInt(bidQuantityInput.value);
+            const newFace = selectedBidFace;
+
+            const { last_bid_quantity: oldQuantity, last_bid_face: oldFace } = currentGameRoom;
+
+            // Validação completa do lance, incluindo regras do curinga '1'
+            let isValid = false;
+            if (!oldQuantity) {
+                isValid = true; // Primeiro lance da rodada é sempre válido
+            } else if (oldFace === 1 && newFace !== 1) { // Saída do Curinga
+                const requiredQuantity = (oldQuantity * 2) + 1;
+                isValid = newQuantity >= requiredQuantity;
+            } else if (oldFace !== 1 && newFace === 1) { // Entrada no Curinga
+                const requiredQuantity = Math.ceil(oldQuantity / 2);
+                isValid = newQuantity >= requiredQuantity;
+            } else if (newFace === oldFace) { // Aumentando a quantidade da mesma face
+                isValid = newQuantity > oldQuantity;
+            } else { // Regra padrão (não-curinga para não-curinga, ou curinga para curinga)
+                 if (newQuantity > oldQuantity) {
+                    isValid = true;
+                } else if (newQuantity === oldQuantity && newFace > oldFace) {
+                    isValid = true;
+                }
+            }
+
+            if (!isValid) {
+                alert("Lance inválido! Verifique as regras de aumento de lance.");
+                return;
+            }
+
+            // Encontra o próximo jogador
+            const currentPlayerTurnOrder = currentPlayer.turn_order;
+            const nextPlayer = gamePlayers.sort((a, b) => a.turn_order - b.turn_order).find(p => p.turn_order > currentPlayerTurnOrder) || gamePlayers.sort((a, b) => a.turn_order - b.turn_order)[0];
+            const turnExpires = new Date(new Date().getTime() + TURN_DURATION_SECONDS * 1000).toISOString();
+
+            // Atualiza a sala com o novo lance e o próximo jogador
+            await supabase.from('game_rooms').update({
+                last_bid_quantity: newQuantity,
+                last_bid_face: newFace,
+                last_bidder_id: currentPlayer.player_id,
+                current_turn_player_id: nextPlayer.player_id,
+                turn_expires_at: turnExpires,
+                round_history: [...(currentGameRoom.round_history || []), `${currentPlayer.player_id} apostou ${newQuantity}x${newFace}`]
+            }).eq('id', currentGameRoom.id);
+
+            biddingUi.classList.add('hidden');
+        }
+
+        // Adiciona um gatilho para mostrar o lobby do jogo (ex: um botão na UI principal)
+        // Por agora, vamos apenas adicionar os manipuladores de eventos do lobby
+        createGameBtn.addEventListener('click', handleCreateGame);
+        joinGameBtn.addEventListener('click', () => handleJoinGame());
+        startGameBtn.addEventListener('click', handleStartGame);
+        exitGameBtn.addEventListener('click', handleExitGame);
+        actionBidBtn.addEventListener('click', handleBidAction);
+        cancelBidBtn.addEventListener('click', () => biddingUi.classList.add('hidden'));
+        confirmBidBtn.addEventListener('click', handleConfirmBid);
+        actionBluffBtn.addEventListener('click', () => handleChallenge('bluff'));
+        actionExactBtn.addEventListener('click', () => handleChallenge('exact'));
+
+        // Funções para lidar com os desafios "Mentiroso!" e "Exato!"
+        async function handleChallenge(type) {
+            if (!currentGameRoom || !currentPlayer) return;
+
+            // O anfitrião será responsável por resolver o desafio
+            const updates = {
+                game_state: `reveal_${type}`, // 'reveal_bluff' ou 'reveal_exact'
+                // Armazena quem desafiou para referência
+                challenger_id: currentPlayer.player_id
+            };
+
+            await supabase.from('game_rooms').update(updates).eq('id', currentGameRoom.id);
+        }
+
+        openLiarsDiceBtn.addEventListener('click', () => showDiceGame(true));
 
         // --- LÓGICA DE MENSAGENS ---
         let usersCache = {};
