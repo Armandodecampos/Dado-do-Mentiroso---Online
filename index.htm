@@ -189,13 +189,13 @@
             background-color: #E5E7EB; /* Corresponde a bg-gray-200 */
             color: #1F2937; /* Corresponde a text-gray-800 */
             border-radius: 1rem; /* Corresponde a rounded-2xl */
-            border-bottom-left-radius: 0; /* Corresponde a rounded-bl-none */
+            border-top-left-radius: 0; /* Nova ponta do balão */
         }
         .message.sent .message-content {
             background-color: #6366F1; /* Corresponde a bg-indigo-500 */
             color: white;
             border-radius: 1rem; /* Corresponde a rounded-2xl */
-            border-bottom-right-radius: 0; /* Corresponde a rounded-br-none */
+            border-top-left-radius: 0; /* Nova ponta do balão */
         }
         .message-info {
             font-size: 0.75rem; /* Corresponde a text-xs */
@@ -300,7 +300,7 @@
         </div>
 
         <!-- Caixa de Mensagens -->
-        <div id="message-container" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-64 z-30">
+        <div id="message-container" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-80 z-30">
             <div id="message-list" class="h-full pb-16 overflow-y-auto space-y-4">
                 <!-- As mensagens aparecerão aqui -->
             </div>
