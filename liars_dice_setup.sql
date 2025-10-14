@@ -7,6 +7,7 @@ CREATE TABLE game_rooms (
     last_bid_quantity INT,
     last_bid_face INT,
     last_bidder_id UUID REFERENCES auth.users(id),
+    challenger_id UUID REFERENCES auth.users(id),
     round_history JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     host_id UUID NOT NULL REFERENCES auth.users(id),
@@ -62,16 +63,10 @@ USING (auth.uid() = player_id);
 -- Permite que jogadores na mesma sala vejam os dados de outros jogadores (exceto a rolagem dos dados).
 -- Permite que jogadores na mesma sala vejam os dados públicos de outros jogadores.
 -- A lógica é: "Um usuário pode ver uma linha em game_players se existir outra linha na mesma sala que pertença a ele."
+-- A lógica é: "Um usuário pode ver uma linha em game_players se a função is_player_in_room retornar verdadeiro para o room_id dessa linha."
 CREATE POLICY "Allow players to see co-players' public data"
 ON game_players FOR SELECT
-USING (
-    EXISTS (
-        SELECT 1
-        FROM game_players AS gp
-        WHERE gp.room_id = game_players.room_id
-          AND gp.player_id = auth.uid()
-    )
-);
+USING (is_player_in_room(room_id));
 
 -- Permite que um jogador atualize seus próprios dados (por exemplo, ao perder um dado).
 CREATE POLICY "Allow player to update their own data"
@@ -82,3 +77,20 @@ USING (auth.uid() = player_id);
 CREATE POLICY "Allow player to leave a room"
 ON game_players FOR DELETE
 USING (auth.uid() = player_id);
+
+-- Função para verificar se o usuário atual está em uma determinada sala.
+-- SECURITY DEFINER é a chave aqui: executa com os privilégios do proprietário da função,
+-- ignorando a RLS da tabela game_players e evitando a recursão.
+CREATE OR REPLACE FUNCTION is_player_in_room(p_room_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM game_players
+    WHERE room_id = p_room_id AND player_id = auth.uid()
+  );
+END;
+$$;
