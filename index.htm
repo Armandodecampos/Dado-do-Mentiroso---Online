@@ -1257,7 +1257,7 @@
 
                 const { error: updateError } = await supabase
                     .from('profiles')
-                    .update({ avatar_url: publicUrl })
+                    .upsert({ id: user.id, avatar_url: publicUrl })
                     .eq('id', user.id);
 
                 if (updateError) {
@@ -1296,7 +1296,7 @@
 
             const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ full_name: newProfileName })
+                .upsert({ id: user.id, full_name: newProfileName })
                 .eq('id', user.id);
 
             if (updateError) {
@@ -2056,13 +2056,6 @@
             }
         });
 
-        // Adiciona um listener para o evento beforeunload para pedir confirmação antes de atualizar a página
-        window.addEventListener('beforeunload', function (e) {
-            // Cancela o evento
-            e.preventDefault();
-            // O Chrome exige que returnValue seja definido
-            e.returnValue = '';
-        });
     </script>
 </body>
 </html>
