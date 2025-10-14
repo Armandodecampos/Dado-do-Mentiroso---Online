@@ -172,9 +172,6 @@
         .message {
             @apply flex items-end gap-2;
         }
-        .message.sent {
-            @apply flex-row-reverse;
-        }
         .message-avatar {
             @apply w-8 h-8 rounded-full object-cover flex-shrink-0;
         }
@@ -185,7 +182,7 @@
             @apply bg-gray-200 text-gray-800 rounded-2xl rounded-bl-md;
         }
         .message.sent .message-content {
-            @apply bg-indigo-500 text-white rounded-2xl rounded-br-md;
+            @apply bg-indigo-500 text-white rounded-2xl rounded-bl-md;
         }
         .message-info {
             @apply text-xs text-gray-400 px-1;
@@ -706,13 +703,11 @@
             messageDiv.className = `message ${messageType}`;
 
             const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.profile_name || 'U').charAt(0).toUpperCase()}`;
-            const senderNameHTML = messageType === 'received'
-                ? `<p class="font-semibold text-sm mb-1">${userInfo.profile_name || 'Anónimo'}</p>`
-                : '';
+            const senderNameHTML = `<p class="font-semibold text-sm mb-1">${userInfo.profile_name || 'Anónimo'}</p>`;
 
             messageDiv.innerHTML = `
                 <img src="${avatarSrc}" alt="${userInfo.profile_name}" class="message-avatar">
-                <div class="flex flex-col ${messageType === 'sent' ? 'items-end' : 'items-start'}">
+                <div class="flex flex-col items-start">
                     <div class="message-content max-w-xs md:max-w-md">
                         ${senderNameHTML}
                         <p>${message.content}</p>
