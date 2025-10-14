@@ -678,7 +678,7 @@
         let usersCache = {};
 
         async function fetchUsers() {
-            const { data, error } = await supabase.from('profiles').select('id, profile_name, avatar_url');
+            const { data, error } = await supabase.from('profiles').select('id, full_name, avatar_url');
             if (error) {
                 console.error('Error fetching users:', error);
                 return;
@@ -693,7 +693,7 @@
             if (!usersCache[message.user_id]) {
                 await fetchUsers();
             }
-            const userInfo = usersCache[message.user_id] || { profile_name: 'Utilizador Desconhecido', avatar_url: `https://placehold.co/100x100/A0A0A0/FFFFFF?text=?` };
+            const userInfo = usersCache[message.user_id] || { full_name: 'Utilizador Desconhecido', avatar_url: `https://placehold.co/100x100/A0A0A0/FFFFFF?text=?` };
 
             const { data: { session } } = await supabase.auth.getSession();
             const currentUser = session?.user;
@@ -702,11 +702,11 @@
             const messageType = (currentUser && currentUser.id === message.user_id) ? 'sent' : 'received';
             messageDiv.className = `message ${messageType}`;
 
-            const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.profile_name || 'U').charAt(0).toUpperCase()}`;
-            const senderNameHTML = `<p class="font-semibold text-sm mb-1">${userInfo.profile_name || 'Anónimo'}</p>`;
+            const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.full_name || 'U').charAt(0).toUpperCase()}`;
+            const senderNameHTML = `<p class="font-semibold text-sm mb-1">${userInfo.full_name || 'Anónimo'}</p>`;
 
             messageDiv.innerHTML = `
-                <img src="${avatarSrc}" alt="${userInfo.profile_name}" class="message-avatar">
+                <img src="${avatarSrc}" alt="${userInfo.full_name}" class="message-avatar">
                 <div class="flex flex-col items-start">
                     <div class="message-content max-w-xs md:max-w-md">
                         ${senderNameHTML}
@@ -810,14 +810,14 @@
         async function loadUserProfile(user) {
             const { data: profileData, error } = await supabase
                 .from('profiles')
-                .select('avatar_url, profile_name')
+                .select('avatar_url, full_name')
                 .eq('id', user.id)
                 .single();
 
             if (!error && profileData) {
-                userAvatarLoggedIn.src = profileData.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(profileData.profile_name || user.email).charAt(0).toUpperCase()}`;
-                userEmailDisplay.textContent = profileData.profile_name || user.email;
-                profileNameInput.value = profileData.profile_name || '';
+                userAvatarLoggedIn.src = profileData.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(profileData.full_name || user.email).charAt(0).toUpperCase()}`;
+                userEmailDisplay.textContent = profileData.full_name || user.email;
+                profileNameInput.value = profileData.full_name || '';
             } else {
                 const initial = user.email.charAt(0).toUpperCase();
                 userAvatarLoggedIn.src = `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${initial}`;
@@ -1159,9 +1159,9 @@
             profileModal.classList.remove('flex');
             editProfileModal.classList.remove('hidden');
             editProfileModal.classList.add('flex');
-            const { data, error } = await supabase.from('profiles').select('profile_name').eq('id', (await supabase.auth.getSession()).data.session.user.id).single();
-            if (!error && data?.profile_name) {
-                profileNameInput.value = data.profile_name;
+            const { data, error } = await supabase.from('profiles').select('full_name').eq('id', (await supabase.auth.getSession()).data.session.user.id).single();
+            if (!error && data?.full_name) {
+                profileNameInput.value = data.full_name;
             }
         });
 
@@ -1300,7 +1300,7 @@
 
             const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ profile_name: newProfileName })
+                .update({ full_name: newProfileName })
                 .eq('id', user.id);
 
             if (updateError) {
