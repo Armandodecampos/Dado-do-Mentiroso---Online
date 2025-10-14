@@ -174,12 +174,9 @@
             align-items: flex-start;
             gap: 10px; /* Corresponde a gap-2.5 */
         }
-        .message.sent {
-            flex-direction: row-reverse;
-        }
         .message-avatar {
-            width: 20px; /* Corresponde a w-5 */
-            height: 20px; /* Corresponde a h-5 */
+            width: 40px; /* Dobro do tamanho anterior */
+            height: 40px; /* Dobro do tamanho anterior */
             border-radius: 9999px; /* Corresponde a rounded-full */
             object-fit: cover;
             flex-shrink: 0;
@@ -205,10 +202,6 @@
             color: #9CA3AF; /* Corresponde a text-gray-400 */
             padding-left: 4px;
             padding-right: 4px;
-        }
-        .message.sent .message-info {
-            text-align: right;
-            width: 100%;
         }
     </style>
 </head>
@@ -722,14 +715,13 @@
             messageDiv.className = `message ${messageType}`;
 
             const avatarSrc = userInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(userInfo.full_name || 'U').charAt(0).toUpperCase()}`;
-            const senderNameHTML = `<p class="font-semibold text-sm mb-1">${userInfo.full_name || 'Anónimo'}</p>`;
+            const senderNameHTML = `<p class="font-semibold text-sm text-gray-800">${userInfo.full_name || 'Anónimo'}</p>`;
 
-            const contentAlignment = messageType === 'sent' ? 'items-end' : 'items-start';
             messageDiv.innerHTML = `
                 <img src="${avatarSrc}" alt="${userInfo.full_name}" class="message-avatar">
-                <div class="flex flex-col ${contentAlignment}">
-                    <div class="message-content max-w-xs md:max-w-md">
-                        ${senderNameHTML}
+                <div class="flex flex-col items-start w-full">
+                    ${senderNameHTML}
+                    <div class="message-content max-w-xs md:max-w-md mt-1">
                         <p>${message.content}</p>
                     </div>
                     <p class="message-info mt-1">${new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
