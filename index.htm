@@ -168,30 +168,47 @@
             box-shadow: none !important;
             -webkit-tap-highlight-color: transparent !important;
         }
-        /* Estilos para a caixa de mensagens */
+        /* Estilos para a caixa de mensagens (com CSS padrão para robustez) */
         .message {
-            @apply flex items-start gap-2.5; /* Aumenta o espaçamento para acomodar a sombra */
+            display: flex;
+            align-items: flex-start;
+            gap: 10px; /* Corresponde a gap-2.5 */
         }
         .message.sent {
-            @apply flex-row-reverse; /* Inverte a ordem para mensagens enviadas */
+            flex-direction: row-reverse;
         }
         .message-avatar {
-            @apply w-5 h-5 rounded-full object-cover flex-shrink-0; /* Avatar menor */
+            width: 20px; /* Corresponde a w-5 */
+            height: 20px; /* Corresponde a h-5 */
+            border-radius: 9999px; /* Corresponde a rounded-full */
+            object-fit: cover;
+            flex-shrink: 0;
         }
         .message-content {
-            @apply px-3 py-2 shadow-md; /* Adiciona sombra a todas as mensagens */
+            padding: 8px 12px; /* Corresponde a px-3 py-2 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Corresponde a shadow-md */
         }
         .message.received .message-content {
-            @apply bg-gray-200 text-gray-800 rounded-2xl rounded-bl-none; /* Formato de balão para recebidas */
+            background-color: #E5E7EB; /* Corresponde a bg-gray-200 */
+            color: #1F2937; /* Corresponde a text-gray-800 */
+            border-radius: 1rem; /* Corresponde a rounded-2xl */
+            border-bottom-left-radius: 0; /* Corresponde a rounded-bl-none */
         }
         .message.sent .message-content {
-            @apply bg-indigo-500 text-white rounded-2xl rounded-br-none; /* Formato de balão para enviadas */
+            background-color: #6366F1; /* Corresponde a bg-indigo-500 */
+            color: white;
+            border-radius: 1rem; /* Corresponde a rounded-2xl */
+            border-bottom-right-radius: 0; /* Corresponde a rounded-br-none */
         }
         .message-info {
-            @apply text-xs text-gray-400 px-1;
+            font-size: 0.75rem; /* Corresponde a text-xs */
+            color: #9CA3AF; /* Corresponde a text-gray-400 */
+            padding-left: 4px;
+            padding-right: 4px;
         }
         .message.sent .message-info {
-            @apply text-right w-full; /* Alinha o texto da hora à direita para mensagens enviadas */
+            text-align: right;
+            width: 100%;
         }
     </style>
 </head>
