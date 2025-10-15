@@ -296,13 +296,13 @@
                         <button id="dice-join-game-btn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md shadow-lg text-lg">Entrar</button>
                     </div>
                     <p id="dice-lobby-message" class="text-red-500 h-4"></p>
-                    <button id="dice-start-game-btn" class="hidden w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-md shadow-lg text-lg mt-4">Iniciar Jogo</button>
                 </div>
                 <button id="dice-exit-game-btn" class="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-2xl">&times;</button>
             </div>
 
             <!-- Tela Principal do Jogo -->
             <div id="dice-game-screen" class="hidden h-full flex flex-col">
+                <button id="dice-start-game-btn" class="hidden w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-md shadow-lg text-lg mb-4 disabled:opacity-50" disabled>Iniciar Jogo</button>
                 <!-- Informações do Jogo (Oponentes e Sala) -->
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="text-xl font-bold">Sala: <span id="dice-game-room-code" class="font-mono"></span></h3>
@@ -677,29 +677,32 @@
             gamePlayers = players;
             currentPlayer = players.find(p => p.player_id === user.id);
 
-            // Limpa a mensagem de "Entrando na sala..."
+            // Limpa a mensagem de "Entrando na sala..." e garante que o ecrã de jogo está visível
             lobbyMessage.textContent = '';
+            diceGameLobby.classList.add('hidden');
+            diceGameScreen.classList.remove('hidden');
 
-            // Alterna entre lobby e tela do jogo
+            // Lógica para o estado de 'lobby' (dentro do ecrã do jogo)
             if (room.game_state === 'lobby') {
-                diceGameLobby.classList.remove('hidden');
-                diceGameScreen.classList.add('hidden');
+                // Ações do Jogo ficam escondidas
+                gameActionsContainer.classList.add('hidden');
 
-                // Mostra o botão Iniciar Jogo para o anfitrião se houver jogadores suficientes
                 if (user.id === room.host_id) {
+                    startGameBtn.classList.remove('hidden');
                     if (players.length >= 2) {
-                        startGameBtn.classList.remove('hidden');
-                        lobbyMessage.textContent = 'Jogadores suficientes! Pode iniciar o jogo.';
+                        startGameBtn.disabled = false;
+                        startGameBtn.textContent = 'Iniciar Jogo';
                     } else {
-                        startGameBtn.classList.add('hidden');
-                        lobbyMessage.textContent = 'Aguardando mais jogadores para começar...';
+                        startGameBtn.disabled = true;
+                        startGameBtn.textContent = 'Aguardando jogadores...';
                     }
                 } else {
-                    lobbyMessage.textContent = 'Aguardando o anfitrião iniciar o jogo.';
+                    startGameBtn.classList.add('hidden');
+                    // Pode adicionar uma mensagem para jogadores que não são o host aqui se quiser
                 }
-            } else {
-                diceGameLobby.classList.add('hidden');
-                diceGameScreen.classList.remove('hidden');
+            } else { // O jogo está em progresso
+                startGameBtn.classList.add('hidden');
+                gameActionsContainer.classList.remove('hidden');
             }
 
             showDiceGame(true);
