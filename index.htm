@@ -825,15 +825,29 @@
                 return;
             }
 
-            // 2. Insere o jogador na sala
-            const { error: joinError } = await supabase.from('game_players').insert({
-                room_id: room.id,
-                player_id: user.id
-            });
+            // 2. Verifica se o jogador já está na sala antes de o inserir
+            const { data: existingPlayer, error: checkError } = await supabase
+                .from('game_players')
+                .select('id')
+                .match({ room_id: room.id, player_id: user.id })
+                .maybeSingle();
 
-            if (joinError && joinError.code !== '23505') { // Ignora erro de chave duplicada se já estiver na sala
-                lobbyMessage.textContent = `Erro ao entrar na sala: ${joinError.message}`;
+            if (checkError) {
+                lobbyMessage.textContent = `Erro ao verificar jogador: ${checkError.message}`;
                 return;
+            }
+
+            if (!existingPlayer) {
+                // Só insere o jogador se ele não estiver na sala
+                const { error: joinError } = await supabase.from('game_players').insert({
+                    room_id: room.id,
+                    player_id: user.id
+                });
+
+                if (joinError) {
+                    lobbyMessage.textContent = `Erro ao entrar na sala: ${joinError.message}`;
+                    return;
+                }
             }
 
             // 3. Busca o estado completo e renderiza
