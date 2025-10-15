@@ -57,6 +57,11 @@ CREATE POLICY "Allow players in the room to read room data"
 ON game_rooms FOR SELECT
 USING (id IN (SELECT room_id FROM game_players WHERE player_id = auth.uid()));
 
+-- Permite que qualquer utilizador autenticado veja as salas que estão no lobby.
+CREATE POLICY "Allow authenticated users to see lobbies"
+ON game_rooms FOR SELECT
+USING (game_state = 'lobby' AND auth.role() = 'authenticated');
+
 -- Permite que o anfitrião ou o jogador do turno atual atualize a sala.
 CREATE POLICY "Allow host or current player to update room"
 ON game_rooms FOR UPDATE
