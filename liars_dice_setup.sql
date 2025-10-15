@@ -33,7 +33,7 @@ ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
 -- Permite que qualquer usuário autenticado crie uma sala.
 CREATE POLICY "Allow authenticated users to create rooms"
 ON game_rooms FOR INSERT
-WITH CHECK (auth.role() = 'authenticated');
+WITH CHECK (auth.uid() = host_id);
 
 -- Permite que jogadores na sala leiam as informações da sala.
 CREATE POLICY "Allow players in the room to read room data"
