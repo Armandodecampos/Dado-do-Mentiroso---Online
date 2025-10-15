@@ -785,18 +785,17 @@
             lobbyMessage.textContent = 'Criando sala...';
             const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
 
-            // 1. Cria a sala
-            const { data: room, error: roomError } = await supabase.from('game_rooms').insert({
-                room_code: roomCode,
-                host_id: user.id
-            }).select().single();
+            // 1. Chama a função RPC para criar a sala e adicionar o jogador
+            const { data, error: rpcError } = await supabase.rpc('create_new_game_room', {
+                p_room_code: roomCode
+            });
 
-            if (roomError) {
-                lobbyMessage.textContent = `Erro ao criar sala: ${roomError.message}`;
+            if (rpcError) {
+                lobbyMessage.textContent = `Erro ao criar sala: ${rpcError.message}`;
                 return;
             }
 
-            // 2. Entra na sala
+            // 2. A sala foi criada, agora busca o estado completo para renderizar
             await handleJoinGame(roomCode);
         }
 

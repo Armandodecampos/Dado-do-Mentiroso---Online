@@ -94,3 +94,28 @@ USING (auth.uid() = player_id);
 CREATE POLICY "Allow player to leave a room"
 ON game_players FOR DELETE
 USING (auth.uid() = player_id);
+
+-- Função RPC para criar uma sala de jogo e adicionar o anfitrião como jogador
+-- Esta abordagem é mais segura e contorna problemas de RLS com múltiplas inserções.
+CREATE OR REPLACE FUNCTION create_new_game_room(p_room_code TEXT)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  new_room game_rooms;
+  host_id UUID := auth.uid();
+BEGIN
+  -- Insere a nova sala de jogo
+  INSERT INTO public.game_rooms (room_code, host_id)
+  VALUES (p_room_code, host_id)
+  RETURNING * INTO new_room;
+
+  -- Adiciona o anfitrião como o primeiro jogador
+  INSERT INTO public.game_players (room_id, player_id)
+  VALUES (new_room.id, host_id);
+
+  -- Retorna os detalhes da sala criada como JSON
+  RETURN json_build_object('id', new_room.id, 'room_code', new_room.room_code);
+END;
+$$;
