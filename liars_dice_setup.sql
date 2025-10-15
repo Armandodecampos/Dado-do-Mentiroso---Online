@@ -29,6 +29,23 @@ CREATE TABLE game_players (
 ALTER TABLE game_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
 
+-- Função para verificar se o usuário atual está em uma determinada sala.
+-- SECURITY DEFINER é a chave aqui: executa com os privilégios do proprietário da função,
+-- ignorando a RLS da tabela game_players e evitando a recursão.
+CREATE OR REPLACE FUNCTION is_player_in_room(p_room_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM game_players
+    WHERE room_id = p_room_id AND player_id = auth.uid()
+  );
+END;
+$$;
+
 -- Políticas de RLS para game_rooms
 -- Permite que qualquer usuário autenticado crie uma sala.
 CREATE POLICY "Allow authenticated users to create rooms"
@@ -77,20 +94,3 @@ USING (auth.uid() = player_id);
 CREATE POLICY "Allow player to leave a room"
 ON game_players FOR DELETE
 USING (auth.uid() = player_id);
-
--- Função para verificar se o usuário atual está em uma determinada sala.
--- SECURITY DEFINER é a chave aqui: executa com os privilégios do proprietário da função,
--- ignorando a RLS da tabela game_players e evitando a recursão.
-CREATE OR REPLACE FUNCTION is_player_in_room(p_room_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM game_players
-    WHERE room_id = p_room_id AND player_id = auth.uid()
-  );
-END;
-$$;
