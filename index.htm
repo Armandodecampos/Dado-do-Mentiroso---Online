@@ -677,16 +677,25 @@
             gamePlayers = players;
             currentPlayer = players.find(p => p.player_id === user.id);
 
+            // Limpa a mensagem de "Entrando na sala..."
+            lobbyMessage.textContent = '';
+
             // Alterna entre lobby e tela do jogo
             if (room.game_state === 'lobby') {
                 diceGameLobby.classList.remove('hidden');
                 diceGameScreen.classList.add('hidden');
 
                 // Mostra o botão Iniciar Jogo para o anfitrião se houver jogadores suficientes
-                if (user.id === room.host_id && players.length >= 2) {
-                    startGameBtn.classList.remove('hidden');
+                if (user.id === room.host_id) {
+                    if (players.length >= 2) {
+                        startGameBtn.classList.remove('hidden');
+                        lobbyMessage.textContent = 'Jogadores suficientes! Pode iniciar o jogo.';
+                    } else {
+                        startGameBtn.classList.add('hidden');
+                        lobbyMessage.textContent = 'Aguardando mais jogadores para começar...';
+                    }
                 } else {
-                    startGameBtn.classList.add('hidden');
+                    lobbyMessage.textContent = 'Aguardando o anfitrião iniciar o jogo.';
                 }
             } else {
                 diceGameLobby.classList.add('hidden');
