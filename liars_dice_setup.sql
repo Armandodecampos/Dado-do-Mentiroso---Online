@@ -29,6 +29,23 @@ CREATE TABLE game_players (
 ALTER TABLE game_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
 
+-- Função para verificar se o usuário atual está em uma determinada sala.
+-- SECURITY DEFINER é a chave aqui: executa com os privilégios do proprietário da função,
+-- ignorando a RLS da tabela game_players e evitando a recursão.
+CREATE OR REPLACE FUNCTION is_player_in_room(p_room_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM game_players
+    WHERE room_id = p_room_id AND player_id = auth.uid()
+  );
+END;
+$$;
+
 -- Políticas de RLS para game_rooms
 -- Permite que qualquer usuário autenticado crie uma sala.
 CREATE POLICY "Allow authenticated users to create rooms"
@@ -78,19 +95,27 @@ CREATE POLICY "Allow player to leave a room"
 ON game_players FOR DELETE
 USING (auth.uid() = player_id);
 
--- Função para verificar se o usuário atual está em uma determinada sala.
--- SECURITY DEFINER é a chave aqui: executa com os privilégios do proprietário da função,
--- ignorando a RLS da tabela game_players e evitando a recursão.
-CREATE OR REPLACE FUNCTION is_player_in_room(p_room_id BIGINT)
-RETURNS BOOLEAN
+-- Função RPC para criar uma sala de jogo e adicionar o anfitrião como jogador
+-- Esta abordagem é mais segura e contorna problemas de RLS com múltiplas inserções.
+CREATE OR REPLACE FUNCTION create_new_game_room(p_room_code TEXT)
+RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  new_room game_rooms;
+  host_id UUID := auth.uid();
 BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM game_players
-    WHERE room_id = p_room_id AND player_id = auth.uid()
-  );
+  -- Insere a nova sala de jogo
+  INSERT INTO public.game_rooms (room_code, host_id)
+  VALUES (p_room_code, host_id)
+  RETURNING * INTO new_room;
+
+  -- Adiciona o anfitrião como o primeiro jogador
+  INSERT INTO public.game_players (room_id, player_id)
+  VALUES (new_room.id, host_id);
+
+  -- Retorna os detalhes da sala criada como JSON
+  RETURN json_build_object('id', new_room.id, 'room_code', new_room.room_code);
 END;
 $$;
