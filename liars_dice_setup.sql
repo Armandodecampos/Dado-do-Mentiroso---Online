@@ -30,10 +30,10 @@ ALTER TABLE game_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_players ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS para game_rooms
--- Permite que qualquer usuário autenticado crie uma sala.
+-- Permite que um usuário crie uma sala apenas se ele for o anfitrião.
 CREATE POLICY "Allow authenticated users to create rooms"
 ON game_rooms FOR INSERT
-WITH CHECK (auth.role() = 'authenticated');
+WITH CHECK (auth.uid() = host_id);
 
 -- Permite que jogadores na sala leiam as informações da sala.
 CREATE POLICY "Allow players in the room to read room data"
