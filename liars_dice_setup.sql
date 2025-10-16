@@ -18,7 +18,8 @@ CREATE TABLE game_rooms (
     round_history JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     host_id UUID NOT NULL REFERENCES auth.users(id),
-    turn_expires_at TIMESTAMPTZ
+    turn_expires_at TIMESTAMPTZ,
+    banned_players UUID[] DEFAULT ARRAY[]::UUID[]
 );
 
 -- Tabela para gerenciar os jogadores dentro de cada sala
@@ -129,5 +130,32 @@ BEGIN
 
   -- Retorna os detalhes da sala criada como JSON
   RETURN json_build_object('id', new_room.id, 'room_code', new_room.room_code);
+END;
+$$;
+
+-- Função RPC para o anfitrião banir um jogador
+CREATE OR REPLACE FUNCTION ban_player(p_room_id BIGINT, p_player_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  room_host_id UUID;
+BEGIN
+  -- Verifica se quem chama é o anfitrião
+  SELECT host_id INTO room_host_id FROM public.game_rooms WHERE id = p_room_id;
+
+  IF auth.uid() != room_host_id THEN
+    RAISE EXCEPTION 'Apenas o anfitrião pode banir jogadores.';
+  END IF;
+
+  -- Adiciona o jogador à lista de banidos
+  UPDATE public.game_rooms
+  SET banned_players = array_append(banned_players, p_player_id)
+  WHERE id = p_room_id;
+
+  -- Remove o jogador da sala
+  DELETE FROM public.game_players
+  WHERE room_id = p_room_id AND player_id = p_player_id;
 END;
 $$;
