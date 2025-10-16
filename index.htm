@@ -1757,27 +1757,24 @@
         // --- VERIFICAÇÃO DE ESTADO DE AUTENTICAÇÃO E URL ---
         supabase.auth.onAuthStateChange((event, session) => {
             if (session) {
-                // Só inicializa a app por completo se ainda não tiver sido feito para esta sessão.
+                // Só inicializa a app por completo uma vez
                 if (!isAppInitialized) {
                     isAppInitialized = true;
 
                     loadUserProfile(session.user);
-                    // A chamada a loadUserPreferences() foi removida.
                     toggleUI(true);
 
-                    // A subscrição para 'custom_apps' foi removida.
-
-                    // Verifica se há uma sala de jogo ativa na localStorage
+                    // LÓGICA DE REENTRADA PRIORITÁRIA
                     const savedRoomCode = localStorage.getItem('liarsDiceRoomCode');
                     if (savedRoomCode) {
-                        // Se houver, força a entrada direta no jogo, pulando o lobby principal
-                        showDiceGame(true);
+                        // Esconde a UI principal e mostra o jogo imediatamente
+                        loggedInAppContainer.classList.remove('hidden');
+                        liarsDiceContainer.classList.remove('hidden');
+                        diceGameLobby.classList.add('hidden');
+                        diceGameScreen.classList.remove('hidden');
                         handleJoinGame(savedRoomCode);
-                    } else {
-                        // Se não, carrega o chat principal
-                        fetchUsers().then(fetchMessages);
-                        subscribeToMessages();
                     }
+                    // O chat SÓ é inicializado quando se entra numa sala (em renderGameState)
                 }
             } else { // Sem sessão ou o usuário saiu
                 isAppInitialized = false; // Reinicia a flag
