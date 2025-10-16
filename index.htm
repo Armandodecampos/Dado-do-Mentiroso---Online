@@ -882,7 +882,10 @@
 
             renderGameState(room, players);
 
-            // 4. Se inscreve para atualizações em tempo real
+            // 4. Guarda a sala na sessionStorage para persistência
+            sessionStorage.setItem('liarsDiceRoomCode', roomCode);
+
+            // 5. Se inscreve para atualizações em tempo real
             subscribeToGame(room.id);
         }
 
@@ -900,6 +903,9 @@
                 supabase.removeChannel(gameSubscription);
                 gameSubscription = null;
             }
+
+            // Limpa a sessionStorage
+            sessionStorage.removeItem('liarsDiceRoomCode');
 
             // Reseta o estado e a UI
             currentGameRoom = null;
@@ -1755,9 +1761,14 @@
                     // A subscrição para 'custom_apps' foi removida.
 
                     // --- Busca inicial de dados ---
-                    // A chamada a fetchAndRenderApps() foi removida.
                     fetchUsers().then(fetchMessages);
                     subscribeToMessages();
+
+                    // Verifica se há uma sala de jogo ativa na sessionStorage
+                    const savedRoomCode = sessionStorage.getItem('liarsDiceRoomCode');
+                    if (savedRoomCode) {
+                        handleJoinGame(savedRoomCode);
+                    }
                 }
             } else { // Sem sessão ou o usuário saiu
                 isAppInitialized = false; // Reinicia a flag
