@@ -352,8 +352,8 @@
                 </div>
             </div>
         </div>
-        <!-- Caixa de Mensagens -->
-        <div id="message-container" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-80 z-30">
+        <!-- Caixa de Mensagens (escondida por defeito) -->
+        <div id="message-container" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 h-80 z-30">
             <div id="message-list" class="h-full pb-16 overflow-y-auto space-y-4">
                 <!-- As mensagens aparecerão aqui -->
             </div>
@@ -604,6 +604,7 @@
         const messageInput = document.getElementById('message-input');
 
         // --- NOVO: Referências do Jogo Dado do Mentiroso ---
+        const messageContainer = document.getElementById('message-container');
         const liarsDiceContainer = document.getElementById('liars-dice-container');
         const diceGameLobby = document.getElementById('dice-game-lobby');
         const diceGameScreen = document.getElementById('dice-game-screen');
@@ -706,6 +707,11 @@
             }
 
             showDiceGame(true);
+
+            // Mostra o container de mensagens e inicializa o chat
+            messageContainer.classList.remove('hidden');
+            fetchUsers().then(fetchMessages);
+            subscribeToMessages();
 
             // Renderiza informações gerais
             gameRoomCodeDisplay.textContent = room.room_code;
@@ -912,6 +918,7 @@
             currentPlayer = null;
             gamePlayers = [];
             showDiceGame(false);
+            messageContainer.classList.add('hidden'); // Esconde o chat
         }
 
         // Função para se inscrever às atualizações do jogo
@@ -1760,14 +1767,16 @@
 
                     // A subscrição para 'custom_apps' foi removida.
 
-                    // --- Busca inicial de dados ---
-                    fetchUsers().then(fetchMessages);
-                    subscribeToMessages();
-
                     // Verifica se há uma sala de jogo ativa na sessionStorage
                     const savedRoomCode = sessionStorage.getItem('liarsDiceRoomCode');
                     if (savedRoomCode) {
+                        // Se houver, força a entrada direta no jogo, pulando o lobby principal
+                        showDiceGame(true);
                         handleJoinGame(savedRoomCode);
+                    } else {
+                        // Se não, carrega o chat principal
+                        fetchUsers().then(fetchMessages);
+                        subscribeToMessages();
                     }
                 }
             } else { // Sem sessão ou o usuário saiu
