@@ -710,12 +710,21 @@
             // Renderiza informações gerais
             gameRoomCodeDisplay.textContent = room.room_code;
 
-            // Renderiza oponentes
+            // Renderiza todos os jogadores na sala
             opponentsContainer.innerHTML = '';
-            players.filter(p => p.player_id !== user.id).forEach(p => {
-                const opponentEl = document.createElement('div');
-                opponentEl.textContent = `Oponente (${p.dice_count} dados)`;
-                opponentsContainer.appendChild(opponentEl);
+            players.forEach(p => {
+                const playerInfo = usersCache[p.player_id] || { full_name: 'Desconhecido', avatar_url: `https://placehold.co/100x100/A0A0A0/FFFFFF?text=?` };
+                const playerEl = document.createElement('div');
+                playerEl.className = 'flex items-center gap-2 bg-gray-100 p-2 rounded-lg';
+
+                const avatarSrc = playerInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(playerInfo.full_name || 'U').charAt(0).toUpperCase()}`;
+
+                playerEl.innerHTML = `
+                    <img src="${avatarSrc}" alt="${playerInfo.full_name}" class="w-8 h-8 rounded-full object-cover">
+                    <span class="font-semibold">${playerInfo.full_name}</span>
+                    <span class="text-sm text-gray-600">(${p.dice_count} dados)</span>
+                `;
+                opponentsContainer.appendChild(playerEl);
             });
 
             // Renderiza a mão do jogador atual
