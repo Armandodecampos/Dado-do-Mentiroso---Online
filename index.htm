@@ -888,8 +888,8 @@
 
             renderGameState(room, players);
 
-            // 4. Guarda a sala na sessionStorage para persistência
-            sessionStorage.setItem('liarsDiceRoomCode', roomCode);
+            // 4. Guarda a sala na localStorage para persistência
+            localStorage.setItem('liarsDiceRoomCode', roomCode);
 
             // 5. Se inscreve para atualizações em tempo real
             subscribeToGame(room.id);
@@ -910,8 +910,8 @@
                 gameSubscription = null;
             }
 
-            // Limpa a sessionStorage
-            sessionStorage.removeItem('liarsDiceRoomCode');
+            // Limpa a localStorage
+            localStorage.removeItem('liarsDiceRoomCode');
 
             // Reseta o estado e a UI
             currentGameRoom = null;
@@ -1767,8 +1767,8 @@
 
                     // A subscrição para 'custom_apps' foi removida.
 
-                    // Verifica se há uma sala de jogo ativa na sessionStorage
-                    const savedRoomCode = sessionStorage.getItem('liarsDiceRoomCode');
+                    // Verifica se há uma sala de jogo ativa na localStorage
+                    const savedRoomCode = localStorage.getItem('liarsDiceRoomCode');
                     if (savedRoomCode) {
                         // Se houver, força a entrada direta no jogo, pulando o lobby principal
                         showDiceGame(true);
