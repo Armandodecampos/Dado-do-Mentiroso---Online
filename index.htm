@@ -723,14 +723,33 @@
                 const playerEl = document.createElement('div');
                 playerEl.className = 'flex items-center gap-2 bg-gray-100 p-2 rounded-lg';
 
+                if (p.player_id === room.current_turn_player_id) {
+                    playerEl.classList.add('border-2', 'border-green-500');
+                }
+
                 const avatarSrc = playerInfo.avatar_url || `https://placehold.co/100x100/A0A0A0/FFFFFF?text=${(playerInfo.full_name || 'U').charAt(0).toUpperCase()}`;
+
+                let banButton = '';
+                if (user.id === room.host_id && p.player_id !== user.id) {
+                    banButton = `<button data-player-id="${p.player_id}" class="ban-player-btn text-red-500 hover:text-red-700 ml-auto">&times;</button>`;
+                }
 
                 playerEl.innerHTML = `
                     <img src="${avatarSrc}" alt="${playerInfo.full_name}" class="w-8 h-8 rounded-full object-cover">
                     <span class="font-semibold">${playerInfo.full_name}</span>
                     <span class="text-sm text-gray-600">(${p.dice_count} dados)</span>
+                    ${banButton}
                 `;
                 opponentsContainer.appendChild(playerEl);
+
+                if (banButton) {
+                    playerEl.querySelector('.ban-player-btn').addEventListener('click', async (e) => {
+                        const playerIdToBan = e.target.dataset.playerId;
+                        if (confirm(`Tem a certeza que quer banir o jogador ${playerInfo.full_name}?`)) {
+                            await supabase.rpc('ban_player', { p_room_id: room.id, p_player_id: playerIdToBan });
+                        }
+                    });
+                }
             });
 
             // Renderiza a mão do jogador atual
@@ -738,7 +757,8 @@
             if (currentPlayer && currentPlayer.dice_roll) {
                 currentPlayer.dice_roll.forEach(die => {
                     const dieEl = document.createElement('i');
-                    dieEl.className = `${diceIcons[die]}`;
+                    dieEl.className = `${diceIcons[die] || ''}`; // Usa a classe do ícone ou uma string vazia
+                    dieEl.textContent = diceIcons[die] ? '' : die; // Mostra o número se o ícone falhar
                     playerHandContainer.appendChild(dieEl);
                 });
             }
@@ -847,6 +867,12 @@
                 lobbyMessage.textContent = 'Sala não encontrada ou código inválido.';
                 return;
             }
+
+            // Verifica se o jogador está banido
+            if (room.banned_players && room.banned_players.includes(user.id)) {
+                lobbyMessage.textContent = 'Você foi banido desta sala.';
+                return;
+            }
             if (room.game_state !== 'lobby') {
                 lobbyMessage.textContent = 'O jogo já começou.';
                 return;
@@ -948,37 +974,44 @@
         async function resolveChallenge(room, players) {
             const bidQuantity = room.last_bid_quantity;
             const bidFace = room.last_bid_face;
+            const challenger = players.find(p => p.player_id === room.challenger_id);
+            const bidder = players.find(p => p.player_id === room.last_bidder_id);
 
-            // 1. Conta a quantidade real de dados na mesa
+            // 1. Conta a quantidade real de dados na mesa (ás é joker)
             let actualCount = 0;
             players.forEach(p => {
                 p.dice_roll.forEach(die => {
-                    if (die === bidFace || die === 1) { // '1' é curinga
+                    if (die === bidFace || die === 1) {
                         actualCount++;
                     }
                 });
             });
 
-            const challenger = players.find(p => p.player_id === room.challenger_id);
-            const bidder = players.find(p => p.player_id === room.last_bidder_id);
             let loser;
+            let round_history = room.round_history || [];
+            const challengerName = (usersCache[challenger.player_id] || {}).full_name || 'Desconhecido';
+            const bidderName = (usersCache[bidder.player_id] || {}).full_name || 'Desconhecido';
 
             // 2. Determina o resultado
             if (room.game_state === 'reveal_bluff') {
-                if (actualCount >= bidQuantity) { // O lance era verdadeiro
+                if (actualCount >= bidQuantity) { // O lance era verdadeiro, desafiante perde
                     loser = challenger;
-                } else { // O lance era um blefe
+                    round_history.push(`${challengerName} duvidou, mas havia ${actualCount} dados. ${challengerName} perdeu um dado.`);
+                } else { // O lance era um blefe, apostador perde
                     loser = bidder;
+                    round_history.push(`${challengerName} duvidou e estava certo! Havia apenas ${actualCount} dados. ${bidderName} perdeu um dado.`);
                 }
             } else if (room.game_state === 'reveal_exact') {
                 if (actualCount === bidQuantity) { // Acerto exato!
-                    // O desafiante ganha um dado (se não tiver 5)
-                    if (challenger.dice_count < 5) {
-                        await supabase.from('game_players').update({ dice_count: challenger.dice_count + 1 }).eq('id', challenger.id);
+                    round_history.push(`${challengerName} acertou na mosca! Todos perdem um dado, exceto ${challengerName}.`);
+                    // Todos, exceto o desafiante, perdem um dado
+                    const losers = players.filter(p => p.player_id !== challenger.player_id);
+                    for (const l of losers) {
+                        await supabase.from('game_players').update({ dice_count: l.dice_count - 1 }).eq('id', l.id);
                     }
-                    loser = null; // Ninguém perde
                 } else {
                     loser = challenger; // O desafiante errou
+                    round_history.push(`${challengerName} errou o palpite exato. Havia ${actualCount} dados. ${challengerName} perdeu um dado.`);
                 }
             }
 
@@ -1103,20 +1136,24 @@
             let isValid = false;
             if (!oldQuantity) {
                 isValid = true; // Primeiro lance da rodada é sempre válido
-            } else if (oldFace === 1 && newFace !== 1) { // Saída do Curinga
-                const requiredQuantity = (oldQuantity * 2) + 1;
-                isValid = newQuantity >= requiredQuantity;
-            } else if (oldFace !== 1 && newFace === 1) { // Entrada no Curinga
+            } else if (newFace === oldFace) {
+                // Se a face for a mesma, a quantidade tem que ser maior
+                isValid = newQuantity > oldQuantity;
+            } else if (newFace > oldFace) {
+                // Se a face for maior, a quantidade pode ser a mesma ou maior
+                isValid = newQuantity >= oldQuantity;
+            } else {
+                // Se a face for menor, a quantidade tem que ser estritamente maior
+                isValid = newQuantity > oldQuantity;
+            }
+
+            // Regras especiais para o 'ás' (curinga, face 1)
+            if (oldFace !== 1 && newFace === 1) { // A apostar em 'ás' vindo de outra face
                 const requiredQuantity = Math.ceil(oldQuantity / 2);
                 isValid = newQuantity >= requiredQuantity;
-            } else if (newFace === oldFace) { // Aumentando a quantidade da mesma face
-                isValid = newQuantity > oldQuantity;
-            } else { // Regra padrão (não-curinga para não-curinga, ou curinga para curinga)
-                 if (newQuantity > oldQuantity) {
-                    isValid = true;
-                } else if (newQuantity === oldQuantity && newFace > oldFace) {
-                    isValid = true;
-                }
+            } else if (oldFace === 1 && newFace !== 1) { // A sair de 'ás' para outra face
+                const requiredQuantity = oldQuantity * 2;
+                isValid = newQuantity >= requiredQuantity;
             }
 
             if (!isValid) {
